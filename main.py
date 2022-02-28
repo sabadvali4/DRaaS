@@ -2,6 +2,11 @@
 
 import requests
 import json
+# parameters from ENV
+from dotenv import load_dotenv   #for python-dotenv method
+load_dotenv()                    #for python-dotenv method
+import os 
+# parameters from .ini file
 import configparser
 
 config = configparser.ConfigParser()
@@ -16,12 +21,12 @@ else:
 if 'config['DEFAULT']['Url']' in config :
   username = config['DEFAULT']['username']    
 else:
-  username = "drass_admin@gmail.com"
+  user_name = os.environ.get('USER')
 
 if 'config['DEFAULT']['password']' in config :
   password = config['DEFAULT']['password']    
 else:
-  password = "1234"
+  password = os.environ.get('password')
 
 data_json = {"hello": "world"}
 payload = {'json_payload': data_json}
