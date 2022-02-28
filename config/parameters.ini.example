@@ -1,0 +1,14 @@
+#https://docs.python.org/3/library/configparser.html
+[DEFAULT]
+url = https://bynetdev.service-now.com/api/bdml/parse_switch_json/DRaaS/ParseSwitch
+username = fixme
+password =  fixme
+enable_password = C1sco12345
+debug_level = 1
+basepath = .
+total_ssh_attempts = 1
+
+[SWITCHES]
+username = developer
+password = C1sco12345
+ips = 10.10.20.100
