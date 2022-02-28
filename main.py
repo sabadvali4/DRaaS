@@ -167,11 +167,11 @@ def today():
 #show params if debug >8
 
 if int(debug_level) > 8:
-  print("Today:", today())  
+  print("Today:", today(),"\n")  
   print("url: ", url ,"\n")
   print("username: ",username,"\n")
   print("password: ",password,"\n")
-  print("Switches IP", ips)
+  print("Switches IP", ips,"\n")
 
 # run main
 

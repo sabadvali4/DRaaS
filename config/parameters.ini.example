@@ -1,11 +1,14 @@
 #https://docs.python.org/3/library/configparser.html
-
 [DEFAULT]
 url = https://bynetdev.service-now.com/api/bdml/parse_switch_json/DRaaS/ParseSwitch
-username = <<fix_me_without_"">>
-password = <<fix_me_without_"">>
-enable = <<fix_me_without_"">>
+username = oz.pozner@bynet.co.il
+password =  <fix_me_without_"">
+enable_password = <fix_me_without_"">
+debug_level = 3
+basepath = .
+total_ssh_attempts = 1
 
 [SWITCHES]
 username = cisco
-ips = [1.1.1.1 , 2.2.2.2 , 3.3.3.3]
+password = myPassword
+ips = 1.1.1.1, 2.2.2.2
