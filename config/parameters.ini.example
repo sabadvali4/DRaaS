@@ -1,0 +1,10 @@
+#https://docs.python.org/3/library/configparser.html
+[DEFAULT]
+url = "https://bynetdev.service-now.com/api/bdml/parse_switch_json/DRaaS/ParseSwitch"
+username = "<fix_me>"
+password = "fix_me"
+enable = "<fix_me>"
+
+[SWITCHES]
+username = cisco
+ips = [1.1.1.1 , 2.2.2.2 , 3.3.3.3]
