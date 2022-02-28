@@ -20,20 +20,19 @@ Now, click Ok on Environment Variables window to save changes.
 Start by updating the package list using the following command: `sudo apt update`.
 Use the following command to install pip for Python 3: `sudo apt install python3-pip`. ...
 Once the installation is complete, verify the installation by checking the pip version: `pip3 --version`.
-`pip3 install -U python-dotenv requests configparser paramiko curses`
 
+`pip3 install -U python-dotenv requests configparser paramiko curses`
 
 nano ~/.bash_profile
 export USER="username"
 export PASSWORD="password"
 
 
-**All**
+**Setup Paramters**
+
 cd ./config/
 cp/copy parameters.ini.example parameters.ini
 edit parameters.ini with users/password/IPs
 
-
-
-
-windows
+**Execute**
+from shell run `python main.py`
