@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from curses.ascii import NUL
-from zipfile import ZIP_BZIP2
+#from curses.ascii import NUL
+#from zipfile import ZIP_BZIP2
 import requests
 import json
 # parameters from ENV
@@ -14,15 +14,14 @@ import configparser
 from datetime import datetime
 #SSH support
 import paramiko
+#adding conf parser
+import sys
+import confparser
 
 debug_level = 0
 config = configparser.ConfigParser()
 config.sections()
 config.read('./config/parameters.ini')
-
-
-
-
 
 
 if 'DEFAULT' in config :
@@ -69,10 +68,10 @@ else:
 #define functions
 
 
-def run_command_on_device_wo_close(ip_address, username, password, command, sshClient = NUL):
+def run_command_on_device_wo_close(ip_address, username, password, command, sshClient = None):
     """ Connect to a device, run a command, and return the output."""
     # Load SSH host keys.
-    if sshClient == NUL:
+    if sshClient == None:
       ssh = paramiko.SSHClient() 
       ssh.load_system_host_keys()
       # Add SSH host key when missing.
@@ -124,10 +123,14 @@ def get_switch_ios(ip):
     else:
       ssh = sshClient
     #login and run commands to get configuration      
-    output = run_command_on_device_wo_close(ip, switches_username, switches_password, "enable", ssh)
-    output = run_command_on_device_wo_close(ip, switches_username, switches_password, enable_password, ssh)
+    #output = run_command_on_device_wo_close(ip, switches_username, switches_password, "enable", ssh)
+    #if debug_level > 5: print(output)
+    #output = run_command_on_device_wo_close(ip, switches_username, switches_password, enable_password, ssh)
+    #if debug_level > 5: print(output)
     output = run_command_on_device_wo_close(ip, switches_username, switches_password,"terminal length 0",ssh)
+    if debug_level > 5: print(output)
     output = run_command_on_device_wo_close(ip, switches_username, switches_password,"show run",ssh)
+    if debug_level > 5: print(output)
     # Close connection.
     ssh.close()
     #write to file
@@ -135,16 +138,25 @@ def get_switch_ios(ip):
     f = open( file_name , "w")
     if output == None:
         output = ""
-    f.write(output)
+    else:
+      for line in output:
+        f.write(line.replace("\r",""))
     f.close()
 
 def get_JSON_from_IOS(filename):
     """
-    This function transform filename.ios to filename.json
+    This function transform filename_include_path_without_ext.ios to filename_include_path_without_ext.json
     """
-    if debug_level > 0:
-      print("translate IOS to JSON for file: " + filename)
-  
+    if debug_level > 1:
+      print("translate IOS to JSON for file: " + filename +".ios")
+    dissector = confparser.Dissector.from_file('ios.yaml')
+    my_filename = filename+'.ios'
+    myjson = str(dissector.parse_file(my_filename))
+    if debug_level > 5:
+      print("creating File: "+ my_filename +".json  with data:\n"+ myjson)
+    with open(filename + '.json', "w") as myfile:
+      myfile.write(myjson)
+
 def send_json_to_snow(payload):
     """
     This function sends Payload(JSON file) to SNOW API
@@ -160,7 +172,7 @@ def send_json_to_snow(payload):
 def today():
     now = datetime.now()
     date_time = now.strftime("_%m-%d-%Y-H-%H_")
-    if int(debug_level) > 8:
+    if int(debug_level) > 20:
       print("date and time:",date_time)
     return(date_time)  
 
@@ -181,7 +193,7 @@ payload = {'json_payload': data_json}
 for i in ips:
     ip=i.strip()
     get_switch_ios(ip)
-    filename = base_path+"\\temp\\"+ip.replace(".","_")+today()+".ios"
+    filename = base_path+"\\temp\\"+ip.replace(".","_")+today()
     get_JSON_from_IOS(filename)
     payload = base_path+"\\temp\\"+ip.replace(".","_")+today()+".JSON"
     #send_json_to_snow(payload)
