@@ -152,7 +152,7 @@ def get_JSON_from_IOS(filename):
     dissector = confparser.Dissector.from_file('ios.yaml')
     my_filename = filename+'.ios'
     myjson = str(dissector.parse_file(my_filename))
-    if debug_level > 5:
+    if debug_level > 15:
       print("creating File: "+ my_filename +".json  with data:\n"+ myjson)
     with open(filename + '.json', "w") as myfile:
       myfile.write(myjson)
@@ -162,7 +162,7 @@ def send_json_to_snow(payload):
     This function sends Payload(JSON file) to SNOW API
     """
     if debug_level > 1:
-      print("sending JSON to snow: \n" + payload)
+      print("sending JSON to snow: \n" + str(payload))
     response = requests.post(url,headers={'Content-Type':'application/json'}, auth=(username, password), json=payload)
     msg = "status is: " + str(response.status_code)
     if debug_level > 1:
@@ -171,7 +171,8 @@ def send_json_to_snow(payload):
 
 def today():
     now = datetime.now()
-    date_time = now.strftime("_%m-%d-%Y-H-%H_")
+    #date_time = now.strftime("_%m-%d-%Y-H-%H_")
+    date_time = "fix"
     if int(debug_level) > 20:
       print("date and time:",date_time)
     return(date_time)  
@@ -192,8 +193,17 @@ payload = {'json_payload': data_json}
 
 for i in ips:
     ip=i.strip()
-    get_switch_ios(ip)
+    #get_switch_ios(ip)
     filename = base_path+"\\temp\\"+ip.replace(".","_")+today()
-    get_JSON_from_IOS(filename)
-    payload = base_path+"\\temp\\"+ip.replace(".","_")+today()+".JSON"
-    #send_json_to_snow(payload)
+    #get_JSON_from_IOS(filename)
+    JSON_file_name = base_path+"\\temp\\"+ip.replace(".","_")+today()+".JSON"
+    f = open( JSON_file_name , "r")
+    data_json = f.readlines()
+    f.close()
+    json = ''
+    for line in data_json:
+        json += line #.replace("\n","").replace('\"','"')
+    #data_json = {"hello": "world"}
+    payload = {'json_payload': json}
+    
+    send_json_to_snow(payload)
