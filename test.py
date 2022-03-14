@@ -12,7 +12,7 @@ pwd = ''
 headers = {"Accept":"application/json",'Content-type':'application/json'}
 
 # Do the HTTP request
-response = requests.delete(url, auth=(user, pwd), headers=headers)
+response = requests.get(url, auth=(user, pwd), headers=headers)
 
 # Check for HTTP codes other than 204
 if response.status_code != 204: 

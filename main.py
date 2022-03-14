@@ -2,6 +2,7 @@
 
 #from curses.ascii import NUL
 #from zipfile import ZIP_BZIP2
+from asyncio.windows_events import NULL
 import requests
 import json
 # parameters from ENV
@@ -28,6 +29,8 @@ if 'DEFAULT' in config :
   debug_level = int(config['DEFAULT']['debug_level']  )  
 else:
   debug_level = 0
+
+debug_level = 9
 
 if "DEFAULT" in config :
   url = config["DEFAULT"]['Url']    
@@ -169,6 +172,26 @@ def send_json_to_snow(payload):
       print( msg)
       print(response.json())
 
+def get_commands_from_snow(hostname=None,ip=None):
+    """
+    This function gets commands from snow API
+    """
+    commandsUrl="https://bynetdev.service-now.com/api/bdml/parse_switch_json/GETCommands"
+    if (ip!=None):
+      myparams={"switch_ip":str(ip)}
+    if (hostname!=None):
+      myparams={"hostname":str(hostname)}
+    if debug_level > 1:
+      print("getting commands from snow: hostname:" + str(hostname))
+      print("getting commands from snow: ip:" + str(ip))
+      print("getting commands from url:" + str(commandsUrl))
+
+    response = requests.get(commandsUrl,headers={'Content-Type':'application/json'},params=myparams,auth=(username, password))
+    msg = "status is: " + str(response.status_code)
+    if debug_level > 1:
+      print(msg)
+      print(response.json())
+
 def today():
     now = datetime.now()
     #date_time = now.strftime("_%m-%d-%Y-H-%H_")
@@ -191,7 +214,7 @@ if int(debug_level) > 8:
 data_json = {"hello": "world"}
 payload = {'json_payload': data_json}
 
-for i in ips:
+""" for i in ips:
     ip=i.strip()
     #get_switch_ios(ip)
     filename = base_path+"\\temp\\"+ip.replace(".","_")+today()
@@ -206,4 +229,7 @@ for i in ips:
     #data_json = {"hello": "world"}
     payload = {'json_payload': json}
     
-    send_json_to_snow(payload)
+    send_json_to_snow(payload) """
+
+get_commands_from_snow(ip='192.168.1.11')
+get_commands_from_snow(hostname='YanirServer')
