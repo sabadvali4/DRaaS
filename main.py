@@ -188,9 +188,92 @@ def get_commands_from_snow(hostname=None,ip=None):
 
     response = requests.get(commandsUrl,headers={'Content-Type':'application/json'},params=myparams,auth=(username, password))
     msg = "status is: " + str(response.status_code)
+    myresponse=response.json()["result"]
     if debug_level > 1:
       print(msg)
       print(response.json())
+      print(myresponse["u_commands"][0]["command"])
+    send_commands_to_switch(myresponse["switch_ip"],myresponse["u_commands"][0]["command"])
+    return myresponse["u_commands"][0]["sysid"]
+
+def get_ips_from_snow():
+    """
+    This function gets list of switchs ips from snow API
+    """
+    commandsUrl="https://bynetdev.service-now.com/api/bdml/parse_switch_json/SwitchIPs"
+
+    response = requests.get(commandsUrl,headers={'Content-Type':'application/json'},auth=(username, password))
+    msg = "status is: " + str(response.status_code)
+    if debug_level > 1:
+      print(msg)
+      print(response.json())
+    myresponse=response.json()
+    ips=myresponse["result"]["ips"]
+    switch_username=myresponse["result"]["username"]
+    switch_password=myresponse["result"]["password"]
+    print(switch_username)
+    print(switch_password)
+
+def set_status_to_sent(sysid):
+    """
+    This function sets status to sent
+    """
+    commandsUrl="https://bynetdev.service-now.com/api/bdml/parse_switch_json/CommandSent"
+    if (sysid!=None):
+      myparams={"sysid":str(sysid)}
+    if debug_level > 1:
+      print("getting commands from snow: sysid:" + str(sysid))
+
+    response = requests.get(commandsUrl,headers={'Content-Type':'application/json'},params=myparams,auth=(username, password))
+    msg = "status is: " + str(response.status_code)
+    if debug_level > 1:
+      print(msg)
+      print(response.json())
+
+def send_commands_to_switch(ip,command):
+    """
+    This function sends commands to the switch
+    """
+   #get switch username and password from snow
+    commandsUrl="https://bynetdev.service-now.com/api/bdml/parse_switch_json/SwitchIPs"
+    response = requests.get(commandsUrl,headers={'Content-Type':'application/json'},auth=(username, password))
+    myresponse=response.json()
+    ips=myresponse["result"]["ips"]
+    for myip in ips:
+     if myip==ip:
+      switch_username=myresponse["result"]["username"]
+      switch_password=myresponse["result"]["password"]
+      if debug_level > 0:
+       print("sendig command "+command+" to: " + switches_username + "@"+ ip)
+       print(switch_username)
+       print(switch_password)
+    sshClient = None
+    if sshClient == None:
+      ssh = paramiko.SSHClient() 
+      ssh.load_system_host_keys()
+      # Add SSH host key when missing.
+      ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    else:
+      ssh = sshClient
+    #login and run commands to get configuration      
+    #output = run_command_on_device_wo_close(ip, switches_username, switches_password, "enable", ssh)
+    #if debug_level > 5: print(output)
+    #output = run_command_on_device_wo_close(ip, switches_username, switches_password, enable_password, ssh)
+    #if debug_level > 5: print(output)
+    output = run_command_on_device_wo_close(ip, switches_username, switches_password,"terminal length 0",ssh)
+    if debug_level > 5: print(output)
+    output = run_command_on_device_wo_close(ip, switches_username, switches_password,"conf t",ssh)
+    if debug_level > 5: print(output)
+    commands=command.split(",")
+    for mycommand in commands:
+     print("sending command: " + mycommand) 
+     output = run_command_on_device_wo_close(ip, switches_username, switches_password,mycommand,ssh)
+     if debug_level > 5: print(output)
+    output = run_command_on_device_wo_close(ip, switches_username, switches_password,"end",ssh)
+    output = run_command_on_device_wo_close(ip, switches_username, switches_password,"write",ssh)
+    if debug_level > 5: print(output)
+    # Close connection.
+    ssh.close()
 
 def today():
     now = datetime.now()
@@ -210,15 +293,17 @@ if int(debug_level) > 8:
   print("Switches IP", ips,"\n")
 
 # run main
-
+"""
 data_json = {"hello": "world"}
 payload = {'json_payload': data_json}
+get_ips_from_snow()
 
-""" for i in ips:
+for i in ips:
     ip=i.strip()
-    #get_switch_ios(ip)
+    print (ip)
+    get_switch_ios(ip)
     filename = base_path+"\\temp\\"+ip.replace(".","_")+today()
-    #get_JSON_from_IOS(filename)
+    get_JSON_from_IOS(filename)
     JSON_file_name = base_path+"\\temp\\"+ip.replace(".","_")+today()+".JSON"
     f = open( JSON_file_name , "r")
     data_json = f.readlines()
@@ -229,7 +314,9 @@ payload = {'json_payload': data_json}
     #data_json = {"hello": "world"}
     payload = {'json_payload': json}
     
-    send_json_to_snow(payload) """
-
-get_commands_from_snow(ip='192.168.1.11')
-get_commands_from_snow(hostname='YanirServer')
+    send_json_to_snow(payload) 
+"""
+#sysid=get_commands_from_snow(ip='10.10.20.100')
+#set_status_to_sent(sysid)
+#get_commands_from_snow(hostname='YanirServer')
+send_commands_to_switch(ip="10.10.20.48",command="hostname yanir")
