@@ -1,7 +1,8 @@
-""" get Token """
+
 import requests
 import json
 
+""" get Token """
 def get_token(APIC):  
   url = f"https://{APIC}/api/aaaLogin.json"
 
@@ -42,7 +43,21 @@ def my_get(URL,token = None):
     headers = {'Content-type': 'application/json', 'Accept': 'application/json', "Cookie" : f"APIC-Cookie={token}"}  
   requests.packages.urllib3.disable_warnings()
   return requests.get(url, headers=headers, verify=False)
-  
+
+
+def printj(json_object):
+  if type(json_object) is list:
+    json_formatted_str = json.dumps(json_object[0], indent=4, sort_keys=True)
+  elif type(json_object) is dict:
+     json_formatted_str = json.dumps(json_object, indent=4 , sort_keys=True)
+  elif type(json_object) is str: 
+     json_formatted_str = json.dumps(json_object , indent=4, sort_keys=True) 
+  elif type(json_object) is bytes: 
+     json_encoded = json_object.decode("utf-8")
+     json_formatted_str = json.dumps(json_encoded, indent=4, sort_keys=True)   
+  else:
+     json_formatted_str = "Dont know how to print: "+str(type(json_object))    
+  print(json.loads(json_formatted_str))  
   
 def main():
   APIC = "10.10.20.14" 
@@ -58,17 +73,14 @@ def main():
   response=my_post(URL,payload,token)
   print("Response code ["+str(response)+"] Create tenant : \n")
   data = response.content
-  print(data)
+  printj(data)
   """ list all Tenants """
   url = f"https://{APIC}/api/node/class/fvTenant.json"
   payload={}
   response=my_get(URL,token)
   print("Response code ["+str(response)+"] tenant list: \n")
-  data = response.content
-  print(data)
+  printj(response.content)
+  
 
-  
-  
-  
 if __name__ == "__main__":
    main()
