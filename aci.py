@@ -5,7 +5,7 @@ import json
 """ get Token """
 def get_token(APIC):  
   url = f"https://{APIC}/api/aaaLogin.json"
-
+  """ sandbox aa credentials """
   payload = {
     "aaaUser": {
        "attributes": {
@@ -66,19 +66,19 @@ def main():
   print("The token is: " + token)
 
   """create tenant"""
-  NAME = "Leumit"
+  NAME = "test-Leu"
   DN = f"tn-{NAME}"
   URL = f"https://{APIC}/api/node/mo/uni/{DN}.json"
   payload = {"fvTenant":{"attributes":{"dn":f"uni/{DN}","name":NAME,"nameAlias":NAME,"rn":DN,"status":"created"},"children":[]}}
   response=my_post(URL,payload,token)
-  print("Response code ["+str(response)+"] Create tenant : \n")
+  print("Response code ["+str(response.status_code)+"] Create tenant : \n")
   data = response.content
   printj(data)
   """ list all Tenants """
   url = f"https://{APIC}/api/node/class/fvTenant.json"
   payload={}
   response=my_get(URL,token)
-  print("Response code ["+str(response)+"] tenant list: \n")
+  print("Response code ["+str(response.status_code)+"] tenant list: \n")
   printj(response.content)
   
 
