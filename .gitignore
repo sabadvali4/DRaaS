@@ -3,3 +3,5 @@
 *.ini
 *.conf
 *.env
+.vs/
+env/
