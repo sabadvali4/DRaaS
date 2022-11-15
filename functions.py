@@ -141,11 +141,18 @@ def get_commands_from_snow(hostname=None, ip=None):
     response = requests.get(commandsUrl, headers={
                             'Content-Type': 'application/json'}, params=myparams, auth=(settings.username, settings.password))
     msg = "status is: " + str(response.status_code)
-    myresponse = response.json()["result"]
+   
     if settings.debug_level > 1:
         print(msg)
         print(response.json())
-        print(myresponse["u_commands"][0]["command"])
+       
+    if (response.status_code == 200):
+        myresponse = response.json()["result"]
+        if settings.debug_level > 1:
+            print(myresponse["u_commands"][0]["command"])
+    else:
+        myresponse = response.json()
+        return "error" + msg + " response " + str(response)
     send_commands_to_switch(
         myresponse["switch_ip"], myresponse["u_commands"][0]["command"])
     return myresponse["u_commands"][0]["sysid"]

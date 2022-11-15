@@ -1,0 +1,19 @@
+#https://docs.python.org/3/library/configparser.html
+[DEFAULT]
+url = https://<fix_me_without>.service-now.com/api/bdml/parse_switch_json/DRaaS/ParseSwitch
+username = <fix_me_without_"">
+password = <fix_me_without_"">!
+enable_password = <fix_me_without_"">
+debug_level = 3
+basepath = .
+total_ssh_attempts = 1
+
+[SWITCHES]
+username = cisco
+password = Cisco123
+ips = 10.0.0.4
+[ACI]
+apic = <fix_me_without_"">
+https_username = <fix_me_without_"">
+https_password = <fix_me_without_"">
+port = 443

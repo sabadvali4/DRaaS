@@ -7,7 +7,7 @@ NULL = 0
 from collections.abc import Mapping
 import settings
 import requests
-import simplejson
+import json
 # parameters from ENV
 from dotenv import load_dotenv   #for python-dotenv method
 load_dotenv()                    #for python-dotenv method
