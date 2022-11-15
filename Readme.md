@@ -10,12 +10,12 @@ Locate your pip.conf file based on your operating system -
 3. Windows - %APPDATA%\pip\pip.ini
 
 Open the pip.conf file and add trusted-host under the global param -
-``
-`[global]`
-`trusted-host = pypi.python.org`
-`               pypi.org`
-`               files.pythonhosted.org`
-``
+
+[global]
+trusted-host = pypi.python.org
+               pypi.org
+               files.pythonhosted.org
+
 
 Restart your python and then the pip installer will trust these hosts permanently.
 
