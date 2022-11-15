@@ -109,7 +109,7 @@ def get_JSON_from_IOS(filename):
     with open(filename + '.json', "w") as myfile:
         myfile.write(myjson)
 
-
+#from where the payload is comming?
 def send_json_to_snow(payload):
     """
     This function sends Payload(JSON file) to SNOW API
@@ -123,7 +123,7 @@ def send_json_to_snow(payload):
         print(msg)
         print(response.json())
 
-
+#working
 def get_commands_from_snow(hostname=None, ip=None):
     """
     This function gets commands from snow API
@@ -157,7 +157,7 @@ def get_commands_from_snow(hostname=None, ip=None):
         myresponse["switch_ip"], myresponse["u_commands"][0]["command"])
     return myresponse["u_commands"][0]["sysid"]
 
-
+#working
 def get_ips_from_snow():
     """
     This function gets list of switchs ips from snow API
@@ -196,7 +196,7 @@ def set_status_to_sent(sysid):
         print(msg)
         print(response.json())
 
-
+#waiting to oz for switch
 def send_commands_to_switch(ip, command):
     """
     This function sends commands to the switch
@@ -253,7 +253,7 @@ def send_commands_to_switch(ip, command):
     # Close connection.
     ssh.close()
 
-
+#working
 def today():
     now = datetime.now()
     date_time = now.strftime("_%m-%d-%Y-H-%H_")
@@ -289,6 +289,9 @@ for i in ips:
 
 def run():
    get_commands_from_snow(hostname='YanirServer')
+   get_ips_from_snow()
+   #send_json_to_snow()
+   set_status_to_sent('f49bffa3878b9d505db3db1cbbbb351e')
     #send_commands_to_switch(ip="10.10.20.48", command="hostname yanir")
 
 
