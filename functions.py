@@ -128,7 +128,7 @@ def get_commands_from_snow(hostname=None, ip=None):
     """
     This function gets commands from snow API
     """
-    commandsUrl = "https://bynetdev.service-now.com/api/bdml/parse_switch_json/GETCommands"
+    commandsUrl = settings.url + "api/bdml/parse_switch_json/GETCommands"
     if (ip != None):
         myparams = {"switch_ip": str(ip)}
     if (hostname != None):
@@ -162,7 +162,8 @@ def get_ips_from_snow():
     """
     This function gets list of switchs ips from snow API
     """
-    commandsUrl = "https://bynetdev.service-now.com/api/bdml/parse_switch_json/SwitchIPs"
+    commandsUrl = settings.url + 'api/bdml/parse_switch_json/SwitchIPs'
+    #
 
     response = requests.get(commandsUrl, headers={
                             'Content-Type': 'application/json'}, auth=(settings.username, settings.password))
@@ -182,7 +183,7 @@ def set_status_to_sent(sysid):
     """
     This function sets status to sent
     """
-    commandsUrl = "https://bynetdev.service-now.com/api/bdml/parse_switch_json/CommandSent"
+    commandsUrl = settings.url + 'api/bdml/parse_switch_json/CommandSent'
     if (sysid != None):
         myparams = {"sysid": str(sysid)}
     if settings.debug_level > 1:
@@ -201,7 +202,7 @@ def send_commands_to_switch(ip, command):
     This function sends commands to the switch
     """
    # get switch username and password from snow
-    commandsUrl = "https://bynetdev.service-now.com/api/bdml/parse_switch_json/SwitchIPs"
+    commandsUrl = settings.url + 'api/bdml/parse_switch_json/SwitchIPs'
     response = requests.get(commandsUrl, headers={
                             'Content-Type': 'application/json'}, auth=(settings.username, settings.password))
     myresponse = response.json()
@@ -255,10 +256,8 @@ def send_commands_to_switch(ip, command):
 
 def today():
     now = datetime.now()
-    #date_time = now.strftime("_%m-%d-%Y-H-%H_")
-    date_time = "fix"
-    if int(settings.debug_level) > 20:
-        print("date and time:", date_time)
+    date_time = now.strftime("_%m-%d-%Y-H-%H_")
+    #date_time = "fix"
     return (date_time)
 
 
@@ -289,7 +288,7 @@ for i in ips:
 
 
 def run():
-    get_commands_from_snow(hostname='YanirServer', )
+   get_commands_from_snow(hostname='YanirServer')
     #send_commands_to_switch(ip="10.10.20.48", command="hostname yanir")
 
 

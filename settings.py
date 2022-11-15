@@ -24,7 +24,8 @@ def init():
     if "DEFAULT" in config:
         url = config["DEFAULT"]['Url']
     else:
-        url = "https://bynetdev.service-now.com/api/bdml/parse_switch_json/DRaaS/ParseSwitch"
+        url = "https://bynetdev.service-now.com/"
+        #api/bdml/parse_switch_json/DRaaS/ParseSwitch
 
     if "DEFAULT" in config:
         username = config['DEFAULT']['username']
@@ -61,3 +62,4 @@ def init():
         print("username: ", username, "\n")
         print("password: ", password, "\n")
         print("Switches IP", ips, "\n")
+
