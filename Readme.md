@@ -1,3 +1,26 @@
+
+if facing certificate issues:
+
+Locate your pip.conf file based on your operating system -
+
+1. MacOS - $HOME/Library/Application Support/pip/pip.conf
+
+2. Unix - $HOME/.config/pip/pip.conf
+
+3. Windows - %APPDATA%\pip\pip.ini
+
+Open the pip.conf file and add trusted-host under the global param -
+``
+`[global]`
+`trusted-host = pypi.python.org`
+`               pypi.org`
+`               files.pythonhosted.org`
+``
+
+Restart your python and then the pip installer will trust these hosts permanently.
+
+
+
 **Windows**
 
 install python from cmd shell type:
