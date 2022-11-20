@@ -1,4 +1,5 @@
 NULL = 0
+from unittest import result
 import settings
 import requests
 import json
@@ -141,23 +142,39 @@ def get_commands_from_snow(hostname=None, ip=None):
     response = requests.get(commandsUrl, headers={
                             'Content-Type': 'application/json'}, params=myparams, auth=(settings.username, settings.password))
     msg = "status is: " + str(response.status_code)
-   
+    myresponse = is_json(str(response.content)[2:-1])
     if settings.debug_level > 1:
-        print(msg)
-        print(response.json())
-       
-    if (response.status_code == 200):
-        myresponse = response.json()["result"]
-        if settings.debug_level > 1:
-            print(myresponse["u_commands"][0]["command"])
+       print(msg)
+       if(myresponse):
+          print('json response: ')
+          print(response.json())
+       else:
+          print('none json response: ')
+          print(str(response))
+    if (response.status_code == 200 | response.status_code == 201):
+      if(myresponse):
+        myjson = json.loads(str(response.content)[2:-1])['result']
+        if not myjson['commands']:
+            return []
+        else:
+            print(myjson['commands'][0]['command'])
+            return myjson['commands'][0]['command']
+      else:
+          return 'error bad payload'
     else:
-        myresponse = response.json()
-        return "error" + msg + " response " + str(response)
-    send_commands_to_switch(
-        myresponse["switch_ip"], myresponse["u_commands"][0]["command"])
-    return myresponse["u_commands"][0]["sysid"]
+        return 'bad response from snow code:' + str(response.status_code) + ' message: ' + str(myresponse)
 
-#working
+    
+
+
+def is_json(myjson):
+  try:
+    json.loads(str(myjson))
+  except ValueError as e:
+    return False
+  return True
+
+#working: brings the ips to take care
 def get_ips_from_snow():
     """
     This function gets list of switchs ips from snow API
@@ -168,15 +185,32 @@ def get_ips_from_snow():
     response = requests.get(commandsUrl, headers={
                             'Content-Type': 'application/json'}, auth=(settings.username, settings.password))
     msg = "status is: " + str(response.status_code)
+    #remove first two and last one
+    print('my response is:' + str(response.content)[2:-1])
+    myresponse = is_json(str(response.content)[2:-1])
+    
     if settings.debug_level > 1:
         print(msg)
-        print(response.json())
-    myresponse = response.json()
-    ips = myresponse["result"]["ips"]
-    switch_username = myresponse["result"]["username"]
-    switch_password = myresponse["result"]["password"]
-    print(switch_username)
-    print(switch_password)
+        if(myresponse):
+          print('json response: ')
+          print(response.json())
+
+        else:
+          print('none json response: ')
+          print(str(response))
+    if (response.status_code == 200 | response.status_code == 201):
+      if(myresponse):
+        myjson = json.loads(str(response.content)[2:-1])
+        settings.ips = myjson["result"]["ips"]
+        print(settings.ips)
+      else:
+          return 'error bad payload'
+    else:
+        return 'bad response from snow code:' + str(response.status_code) + ' message: ' + str(myresponse)
+    #switch_username = myresponse["result"]["username"]
+    #switch_password = myresponse["result"]["password"]
+    #print(switch_username)
+    #print(switch_password)
 
 
 def set_status_to_sent(sysid):
@@ -285,13 +319,29 @@ for i in ips:
     
     send_json_to_snow(payload) 
 """
-
+def parse_and_send_command(ip, command):
+    response = send_commands_to_switch(ip = ip, command = command)
+    return response
 
 def run():
-   get_commands_from_snow(hostname='YanirServer')
-   get_ips_from_snow()
+   number_of_runs = 1
+   for x in range(number_of_runs):
+    print(get_ips_from_snow())
+    for ip in settings.ips:
+     print('current ip is: ' + ip.strip())
+     commands = get_commands_from_snow(ip=ip.strip())
+     if type(commands) is str:
+         response = parse_and_send_command(ip,commands)
+     else:
+        for command in commands:
+         response = parse_and_send_command(ip,command)
+   else:
+    print("Finally finished!")
+    
+   #get_commands_from_snow(hostname='YanirServer')
+   #get_ips_from_snow()
    #send_json_to_snow()
-   set_status_to_sent('f49bffa3878b9d505db3db1cbbbb351e')
+   #set_status_to_sent('f49bffa3878b9d505db3db1cbbbb351e')
     #send_commands_to_switch(ip="10.10.20.48", command="hostname yanir")
 
 
