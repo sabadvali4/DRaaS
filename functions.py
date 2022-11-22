@@ -115,7 +115,7 @@ def send_json_to_snow(payload):
     """
     if settings.debug_level > 1:
         print("sending JSON to snow: \n" + str(payload))
-    response = requests.post(settings.url, headers={
+    response = requests.post(settings.url+"api/bdml/parse_switch_json/DRaaS/ParseSwitch", headers={
                              'Content-Type': 'application/json'}, auth=(settings.username, settings.password), json=payload)
     msg = "status is: " + str(response.status_code)
     if settings.debug_level > 1:
@@ -336,7 +336,7 @@ def parse_and_send_command(ip, command):
           json += line #.replace("\n","").replace('\"','"')
           #data_json = {"hello": "world"}
         payload = {'json_payload': json}
-        send_json_to_snow(payload) 
+        #send_json_to_snow(payload) 
         response = send_json_to_snow(payload)
       case "pattern-2":
         response = send_commands_to_switch(ip = ip, command = command)
