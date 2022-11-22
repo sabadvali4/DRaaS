@@ -320,7 +320,15 @@ for i in ips:
     send_json_to_snow(payload) 
 """
 def parse_and_send_command(ip, command):
-    response = send_commands_to_switch(ip = ip, command = command)
+    match command:
+      case 'get ios':
+        response = send_commands_to_switch(ip = ip, command = command)
+      case "pattern-2":
+        response = send_commands_to_switch(ip = ip, command = command)
+      case "pattern-3":
+        response = send_commands_to_switch(ip = ip, command = command)
+      case _:
+        response = send_commands_to_switch(ip = ip, command = command)
     return response
 
 def run():
