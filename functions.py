@@ -13,8 +13,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-
 def run_command_on_device_wo_close(ip_address, username, password, command, sshClient=None):
     """ Connect to a device, run a command, and return the output."""
     # Load SSH host keys.
@@ -322,7 +320,24 @@ for i in ips:
 def parse_and_send_command(ip, command):
     match command:
       case 'get ios':
-        response = send_commands_to_switch(ip = ip, command = command)
+        ip=ip.strip()
+        print ("command get ios for ip:"+ str(ip))
+        #get_switch_ios(ip)
+        filename = settings.base_path+"\\temp\\"+ip.replace(".","_")+today()
+        # get_JSON_from_IOS(filename)
+        #JSON_file_name = settings.base_path+"\\temp\\"+ip.replace(".","_")+today()+".JSON"
+        # manual test:
+        JSON_file_name = settings.base_path+"\\temp\\"+"spakim.json"
+        f = open( JSON_file_name , "r")
+        data_json = f.readlines()
+        f.close()
+        json = ''
+        for line in data_json:
+          json += line #.replace("\n","").replace('\"','"')
+          #data_json = {"hello": "world"}
+        payload = {'json_payload': json}
+        send_json_to_snow(payload) 
+        response = send_json_to_snow(payload)
       case "pattern-2":
         response = send_commands_to_switch(ip = ip, command = command)
       case "pattern-3":
