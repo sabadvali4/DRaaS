@@ -55,9 +55,11 @@ def redis_queue_push(TASKS):
                         send_status_update(TASK["record_id"], kv_status["status"], output)
                     else:
                         redis_server.rpush(queue_name, str(TASK))
+                        logger.info('Added %s to queue', TASK["record_id"])
                         print(f'added {TASK["record_id"]} to queue')
                 else:
                     redis_server.rpush(queue_name, str(TASK))
+                    logger.info('Added %s to queue', TASK["record_id"])
                     print(f'added {TASK["record_id"]} to queue')
 
     except Exception as e:
