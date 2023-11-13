@@ -4,5 +4,6 @@
 *.conf
 *.env
 *.pyc
+**/__pycache__/
 .vs/
 env/
