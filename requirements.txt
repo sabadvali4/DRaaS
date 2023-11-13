@@ -1,14 +1,25 @@
+# redis
+# requests
+# python-dotenv
+# json
+# threading
+# unittest
+# datetime
+# paramiko
+# configparser
+# confparser
+# ntc-templates
+# netmiko
+# flask
+# socket
+
 redis
 requests
 python-dotenv
-json
-threading
-unittest
-datetime
 paramiko
 configparser
 confparser
 ntc-templates
 netmiko
 flask
-socket
+ntc_templates

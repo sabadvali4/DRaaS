@@ -13,5 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Set environment variable for script name (e.g., producer.py or consumer.py)
 ENV SCRIPT_NAME producer.py
 
+# Print the value of SCRIPT_NAME during build
+RUN echo "Script name is: $SCRIPT_NAME"
+
 # Run the script specified by the environment variable
-CMD ["python", "${SCRIPT_NAME}"]
+CMD ["python", "$SCRIPT_NAME"]

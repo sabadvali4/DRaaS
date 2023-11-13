@@ -4,6 +4,21 @@ from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
 import glv, api
 from glv import added_vlan
+import logging; from systemd.journal import JournaldLogHandler
+
+# get an instance of the logger object this module will use
+logger = logging.getLogger(__name__)
+# instantiate the JournaldLogHandler to hook into systemd
+journald_handler = JournaldLogHandler()
+# set a formatter to include the level name
+journald_handler.setFormatter(logging.Formatter(
+    '[%(levelname)s] %(message)s'
+))
+# add the journald handler to the current logger
+logger.addHandler(journald_handler)
+# optionally set the logging level
+logger.setLevel(logging.DEBUG)
+
 
 # Create a Redis server connection
 redis_server = redis.Redis()
@@ -20,21 +35,31 @@ credential_dict = {}
 
 # Function to set a value in Redis
 def redis_set(KEY="", VALUE="", OUTPUT=""):
-    if OUTPUT:
-        OUTPUT = re.sub("\"", "\\\"", "      ".join(OUTPUT.splitlines()))
-    else:
-        OUTPUT = ""  # Handle the case where OUTPUT is None or empty
-    redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
-    #print(redis_server.get(KEY))
+    try:
+        if OUTPUT:
+            OUTPUT = re.sub("\"", "\\\"", "      ".join(OUTPUT.splitlines()))
+        else:
+            OUTPUT = ""  # Handle the case where OUTPUT is None or empty
+        redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
+        #print(redis_server.get(KEY))
+        logger.info('Redis set - Key: %s, Value: %s', KEY, VALUE)
+    except Exception as e:
+        logger.error('Error in redis_set: %s', str(e))
+
 
 # Function to get the next request from the Redis queue
 def redis_queue_get():
-    req = redis_server.lpop(queue_name)
-    if req is not None:
-        return req.decode()
-    else:
+    try:
+        req = redis_server.lpop(queue_name)
+        if req is not None:
+            logger.info('Redis queue get - Request: %s', req.decode())
+            return req.decode()
+        else:
+            return None
+    except Exception as e:
+        logger.error('Error in redis_queue_get: %s', str(e))
         return None
-
+    
 # Function to send a status update to the ServiceNow API
 def send_status_update(ID, STATUS, OUTPUT):
     payload = json.dumps(

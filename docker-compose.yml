@@ -10,6 +10,7 @@ services:
       - redis
     volumes:
       - ./functions.py:/app/functions.py
+    command: ["python", "producer.py"]  # Specify the command directly
 
   consumer:
     build:
@@ -21,6 +22,7 @@ services:
       - redis
     volumes:
       - ./functions.py:/app/functions.py
+    command: ["python", "consumer.py"]  # Specify the command directly
 
   redis:
     image: redis:latest
