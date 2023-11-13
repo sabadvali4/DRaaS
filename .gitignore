@@ -3,5 +3,6 @@
 *.ini
 *.conf
 *.env
+*.pyc
 .vs/
 env/
