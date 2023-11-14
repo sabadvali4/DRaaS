@@ -21,9 +21,9 @@ Restart your python and then the pip installer will trust these hosts permanentl
 
 ## Prerequisites
 
-- Python 3.x installed
+- Python 3.8.10 installed
 - Redis server installed and running
-- [Other dependencies, if any]
+- Follow the requirements.txt file
 
 
 **Windows**
@@ -57,18 +57,8 @@ export USER="username"
 export PASSWORD="password"
 
 
-**Setup Paramters**
-
-cd ./config/
-cp/copy parameters.ini.example parameters.ini
-edit parameters.ini with users/password/IPs
-
-**Execute**
-from shell run `python main.py`
-
-
 **systemd setup**
-1. In the producer.service and consumer.service change the user and path to the scripts.
+1. In the `producer.service` and `consumer.service`, update the `User` and `ExecStart` paths to reflect your system's    configuration.
 2. Configure and start the services:
 
     ```bash
@@ -89,3 +79,19 @@ from shell run `python main.py`
     sudo systemctl status producer
     sudo systemctl status consumer
     ```
+
+### Interacting with APIs
+- The system provides the following APIs:
+    - **Endpoint 1: /api/remaining_tasks**
+    - Description: Calculate the number of remaining tasks in the Redis queue
+    - Method: GET
+    - Response:
+
+      ```json
+      {
+        "result": ",,,,,,,,",
+        "data": {
+          "key": ",,,,,,,"
+        }
+      }
+      ```
