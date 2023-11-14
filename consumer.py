@@ -4,7 +4,7 @@ from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
 import glv, api
 from glv import added_vlan
-import logging; from systemd.journal import JournaldLogHandler
+import logging
 
 # get an instance of the logger object this module will use
 logger = logging.getLogger(__name__)

@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import redis, json
 import re
+import subprocess
 
 redis_server = redis.Redis()
 redis_server2 = redis.Redis()
@@ -27,10 +28,29 @@ def main():
 
     @app.route('/clear_cache', methods=['POST'])
     def clear_cache():
-        # Clear the Redkil.lis cache (delete all keys)
+        # Clear the Redis cache (delete all keys)
         redis_server.flushall()
         return jsonify({"message": "Redis cache cleared"})
+    
+
+    @app.route('/service_status/producer', methods=['GET'])
+    def get_producer_status():
+        try:
+            # Run a subprocess to get the status of the producer service
+            result = subprocess.run(['systemctl', 'status', 'producer'], stdout=subprocess.PIPE)
+            return jsonify({"producer_status": result.stdout.decode()})
+        except Exception as e:
+            return jsonify({"error": str(e)})
+
+    @app.route('/service_status/consumer', methods=['GET'])
+    def get_consumer_status():
+        try:
+            # Run a subprocess to get the status of the consumer service
+            result = subprocess.run(['systemctl', 'status', 'consumer'], stdout=subprocess.PIPE)
+            return jsonify({"consumer_status": result.stdout.decode()})
+        except Exception as e:
+            return jsonify({"error": str(e)})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port=5000, debug=True)
+    app.run(host='0.0.0.0',port=50010, debug=True)
   
