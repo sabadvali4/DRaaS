@@ -19,6 +19,11 @@ trusted-host = pypi.python.org
 
 Restart your python and then the pip installer will trust these hosts permanently.
 
+## Prerequisites
+
+- Python 3.x installed
+- Redis server installed and running
+- [Other dependencies, if any]
 
 
 **Windows**
@@ -60,3 +65,27 @@ edit parameters.ini with users/password/IPs
 
 **Execute**
 from shell run `python main.py`
+
+
+**systemd setup**
+1. In the producer.service and consumer.service change the user and path to the scripts.
+2. Configure and start the services:
+
+    ```bash
+    sudo cp /path/to/DRaaS/producer.service /etc/systemd/system/
+    sudo cp /path/to/DRaaS/consumer.service /etc/systemd/system/
+
+    sudo systemctl daemon-reload
+
+    sudo systemctl enable producer
+    sudo systemctl enable consumer
+
+    sudo systemctl start producer
+    sudo systemctl start consumer 
+    ```
+3. Verify service status:
+
+    ```bash
+    sudo systemctl status producer
+    sudo systemctl status consumer
+    ```

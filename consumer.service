@@ -1,0 +1,15 @@
+[Unit]
+Description=Consumer
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+User=devops
+ExecStart=/bin/python3 /home/devops/DRaaS/consumer.py
+StandardOutput=append:/home/devops/consumer_log1.log
+StandardError=append:/home/devops/consumer_log2.log
+SyslogIdentifier=consumer
+
+[Install]
+WantedBy=multi-user.target
