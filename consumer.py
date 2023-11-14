@@ -8,17 +8,26 @@ import logging; from systemd.journal import JournaldLogHandler
 
 # get an instance of the logger object this module will use
 logger = logging.getLogger(__name__)
-# instantiate the JournaldLogHandler to hook into systemd
-journald_handler = JournaldLogHandler()
-# set a formatter to include the level name
-journald_handler.setFormatter(logging.Formatter(
-    '[%(levelname)s] %(message)s'
-))
-# add the journald handler to the current logger
-logger.addHandler(journald_handler)
+
+# Check if the systemd.journal module is available
+try:
+    from systemd.journal import JournaldLogHandler
+
+    # instantiate the JournaldLogHandler to hook into systemd
+    journald_handler = JournaldLogHandler()
+
+    # set a formatter to include the level name
+    journald_handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+
+    # add the journald handler to the current logger
+    logger.addHandler(journald_handler)
+
+except ImportError:
+    # systemd.journal module is not available, use basic console logging
+    logging.basicConfig(level=logging.DEBUG)
+
 # optionally set the logging level
 logger.setLevel(logging.DEBUG)
-
 
 # Create a Redis server connection
 redis_server = redis.Redis()
