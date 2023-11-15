@@ -14,3 +14,4 @@ netmiko
 flask
 ntc_templates
 subprocess
+flasgger

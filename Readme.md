@@ -19,6 +19,17 @@ trusted-host = pypi.python.org
 
 Restart your python and then the pip installer will trust these hosts permanently.
 
+## Download and Install
+1. Clone the repository:
+
+```bash
+Copy code
+git clone https://github.com/Nandi-Ai/DRaaS.git
+cd DRaaS 
+```
+
+2. Install dependencies by requirements.txt
+
 ## Prerequisites
 
 - Python 3.8.10 installed
@@ -82,16 +93,80 @@ export PASSWORD="password"
 
 ### Interacting with APIs
 - The system provides the following APIs:
-    - **Endpoint 1: /api/remaining_tasks**
-    - Description: Calculate the number of remaining tasks in the Redis queue
-    - Method: GET
-    - Response:
 
-      ```json
-      {
-        "result": ",,,,,,,,",
-        "data": {
-          "key": ",,,,,,,"
-        }
+  **Endpoint 1: /api/remaining_tasks**
+  
+  - **Description:** Calculate the number of remaining tasks in the Redis queue
+  - **Method:** GET
+  - **Response:**
+  
+    ```json
+    {
+      "result": "Success",
+      "data": {
+        "remaining_tasks": 0
       }
-      ```
+    }
+    ```
+  
+  **Endpoint 2: /api/current_task**
+  
+  - **Description:** Retrieve information about the current task being processed
+  - **Method:** GET
+  - **Response:**
+  
+    ```json
+    {
+      "result": "Success",
+      "data": {
+        "current_task": {
+          // Task information fields
+        }
+      } 
+    }
+    ```
+
+  **Endpoint 3: /api/clear_cache**
+  
+  - **Description:** Clear the Redis cache (delete all keys)
+  - **Method:** POST
+  - **Response:**
+  
+    ```json
+    {
+      "result": "Success",
+      "data": {
+        "message": "Redis cache cleared"
+      }
+    }
+    ```
+
+  **Endpoint 4: /api/service_status/producer**
+  
+  - **Description:** Get the status of the producer service
+  - **Method:** GET
+  - **Response:**
+  
+    ```json
+    {
+      "result": "Success",
+      "data": {
+        "producer_status": "active"
+      }
+    }
+    ```
+
+  **Endpoint 5: /api/service_status/consumer**
+  
+  - **Description:** Get the status of the consumer service
+  - **Method:** GET
+  - **Response:**
+  
+    ```json
+    {
+      "result": "Success",
+      "data": {
+        "consumer_status": "inactive"
+      }
+    }
+    ```

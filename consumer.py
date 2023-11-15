@@ -6,6 +6,16 @@ import glv, api
 from glv import added_vlan
 import logging
 
+# Create a Redis server connection
+redis_server = redis.Redis()
+queue_name = "api_req_queue"
+redis_server2 = redis.Redis()
+current_task_que = "current_task_que"
+snow_url = "https://bynetprod.service-now.com/api/bdml/switch"
+switch_info_url = "https://bynetprod.service-now.com/api/bdml/parse_switch_json/SwitchIPs"
+get_cmds_url = snow_url + "/getCommands"
+update_req_url = snow_url + "/SetCommandStatus"
+
 # get an instance of the logger object this module will use
 logger = logging.getLogger(__name__)
 
@@ -28,16 +38,6 @@ except ImportError:
 
 # optionally set the logging level
 logger.setLevel(logging.DEBUG)
-
-# Create a Redis server connection
-redis_server = redis.Redis()
-queue_name = "api_req_queue"
-redis_server2 = redis.Redis()
-current_task_que = "current_task_que"
-snow_url = "https://bynetprod.service-now.com/api/bdml/switch"
-switch_info_url = "https://bynetprod.service-now.com/api/bdml/parse_switch_json/SwitchIPs"
-get_cmds_url = snow_url + "/getCommands"
-update_req_url = snow_url + "/SetCommandStatus"
 
 # Dictionary to store credentials for switches
 credential_dict = {}

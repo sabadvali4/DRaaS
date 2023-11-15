@@ -6,6 +6,13 @@ import re
 import json
 import logging
 
+redis_server = redis.Redis()
+queue_name = "api_req_queue"
+snow_url = "https://bynetprod.service-now.com/api/bdml/switch"
+switch_info_url = snow_url + "/getSwitchLogin"
+get_cmds_url = snow_url + "/getCommands"
+update_req_url = snow_url + "/SetCommandStatus"
+
 # get an instance of the logger object this module will use
 logger = logging.getLogger(__name__)
 
@@ -29,12 +36,6 @@ except ImportError:
 # Optionally set the logging level
 logger.setLevel(logging.DEBUG)
 
-redis_server = redis.Redis()
-queue_name = "api_req_queue"
-snow_url = "https://bynetprod.service-now.com/api/bdml/switch"
-switch_info_url = snow_url + "/getSwitchLogin"
-get_cmds_url = snow_url + "/getCommands"
-update_req_url = snow_url + "/SetCommandStatus"
 
 def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=('admin', 'Danut24680')).json()
