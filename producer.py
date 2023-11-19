@@ -13,6 +13,8 @@ switch_info_url = snow_url + "/getSwitchLogin"
 get_cmds_url = snow_url + "/getCommands"
 update_req_url = snow_url + "/SetCommandStatus"
 
+mid_server="Linux_Mid_Server"
+
 # get an instance of the logger object this module will use
 logger = logging.getLogger(__name__)
 
@@ -39,7 +41,7 @@ logger.setLevel(logging.DEBUG)
 
 def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=('admin', 'Danut24680')).json()
-    # print (commands['result'])
+    print (commands['result'])
     return commands['result']
 
 def send_status_update(ID, STATUS, OUTPUT):
@@ -68,16 +70,25 @@ def redis_queue_push(TASKS):
                         output = re.sub("      ", "\n", kv_status["output"])
                         send_status_update(TASK["record_id"], kv_status["status"], output)
                     else:
+                        # Check if mid_name matches the specified value
+                        if TASK.get("mid_name", "") == mid_server:
+                            redis_server.rpush(queue_name, str(TASK))
+                            logger.info('Added %s to queue', TASK["record_id"])
+                            print(f'added {TASK["record_id"]} to queue')
+                        else:
+                            logger.info('Skipped %s because mid_name does not match', TASK["record_id"])
+                else:
+                    # Check if mid_name matches the specified value
+                    if TASK.get("mid_name", "") == mid_server:
                         redis_server.rpush(queue_name, str(TASK))
                         logger.info('Added %s to queue', TASK["record_id"])
                         print(f'added {TASK["record_id"]} to queue')
-                else:
-                    redis_server.rpush(queue_name, str(TASK))
-                    logger.info('Added %s to queue', TASK["record_id"])
-                    print(f'added {TASK["record_id"]} to queue')
+                    else:
+                        logger.info('Skipped %s because mid_name does not match', TASK["record_id"])
 
     except Exception as e:
         logger.error('Error in redis_queue_push: %s', str(e))
+
 
 if __name__ == "__main__":
     while True:

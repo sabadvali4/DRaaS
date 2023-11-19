@@ -60,6 +60,7 @@ def redis_set(KEY="", VALUE="", OUTPUT=""):
 def redis_queue_get():
     try:
         req = redis_server.lpop(queue_name)
+        print(req)
         if req is not None:
             logger.info('Redis queue get - Request: %s', req.decode())
             return req.decode()
@@ -130,6 +131,10 @@ def main():
                 req_switch_ip = json_req["switch_ip"]
                 req_interface_name = json_req["interface_name"]
                 req_port_mode = json_req["port_mode"]
+                
+                req_mid_server = json_req.get("mid_name", "")
+                print (req_mid_server)
+
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
                 else:
