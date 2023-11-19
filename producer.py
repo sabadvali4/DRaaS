@@ -2,6 +2,8 @@ import redis, requests
 import re, json
 import time; from time import * 
 import requests; import re; import json; import logging
+from datetime import datetime
+
 
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
@@ -111,6 +113,7 @@ if __name__ == "__main__":
     while True:
         tasks_len = len(get_requests())  # Use a different variable name
         redis_queue_push(get_requests())
-        timestamp = time()
+        # Format timestamp as HH:MM:SS
+        timestamp = datetime.now().strftime('%H:%M:%S')
         send_health_monitoring_update(mid_server, redis_server.llen(queue_name), (tasks_len - redis_server.llen(queue_name)), timestamp)
         sleep(10)
