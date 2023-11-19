@@ -1,10 +1,7 @@
 import redis, requests
 import re, json
-from time import sleep
-import requests
-import re
-import json
-import logging
+import time; from time import * 
+import requests; import re; import json; import logging
 
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
@@ -12,8 +9,8 @@ snow_url = "https://bynetprod.service-now.com/api/bdml/switch"
 switch_info_url = snow_url + "/getSwitchLogin"
 get_cmds_url = snow_url + "/getCommands"
 update_req_url = snow_url + "/SetCommandStatus"
-
-mid_server="Linux_Mid_Server"
+update_status_url= snow_url + "/postHealthMonitoring"
+mid_server = "Linux_Mid_Server"  ##hard coded name of mid server
 
 # get an instance of the logger object this module will use
 logger = logging.getLogger(__name__)
@@ -41,8 +38,9 @@ logger.setLevel(logging.DEBUG)
 
 def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=('admin', 'Danut24680')).json()
-    print (commands['result'])
+    #print (commands['result'])
     return commands['result']
+
 
 def send_status_update(ID, STATUS, OUTPUT):
     try:
@@ -59,6 +57,24 @@ def send_status_update(ID, STATUS, OUTPUT):
     except Exception as e:
         logger.error('Error in send_status_update: %s', str(e))
 
+
+def send_health_monitoring_update(mid_name, items_in_queue, items_in_process, timestamp):
+    try:
+        payload = json.dumps(
+            {
+                "mid_name": mid_name,
+                "items_in_queue": items_in_queue,
+                "items_in_process": items_in_process,
+                "timestamp": timestamp
+            })
+        print(payload)
+        answer = requests.post(update_status_url, data=payload,
+                               headers={'Content-Type': 'application/json'}, auth=('admin', 'Danut24680')).json()
+
+    except Exception as e:
+        logger.error('Error in send_health_monitoring_update: %s', str(e))
+
+
 def redis_queue_push(TASKS):
     try:
         for TASK in TASKS:
@@ -69,6 +85,7 @@ def redis_queue_push(TASKS):
                     if "completed" in kv_status["status"]:
                         output = re.sub("      ", "\n", kv_status["output"])
                         send_status_update(TASK["record_id"], kv_status["status"], output)
+
                     else:
                         # Check if mid_name matches the specified value
                         if TASK.get("mid_name", "") == mid_server:
@@ -92,5 +109,8 @@ def redis_queue_push(TASKS):
 
 if __name__ == "__main__":
     while True:
+        tasks_len = len(get_requests())  # Use a different variable name
         redis_queue_push(get_requests())
+        timestamp = time()
+        send_health_monitoring_update(mid_server, redis_server.llen(queue_name), (tasks_len - redis_server.llen(queue_name)), timestamp)
         sleep(10)
