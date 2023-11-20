@@ -79,7 +79,7 @@ def send_status_update(ID, STATUS, OUTPUT):
             "command_output": f"{OUTPUT}"
         }
     )
-    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'}, auth=('admin', 'Danut24680'))
+    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'}, auth=(glv.USERNAME, glv.PASSWORD))
 
 # Function to update the credentials dictionary with the status
 def update_credential_dict(ip, username, password, status):
@@ -131,10 +131,9 @@ def main():
                 req_switch_ip = json_req["switch_ip"]
                 req_interface_name = json_req["interface_name"]
                 req_port_mode = json_req["port_mode"]
-                
-                req_mid_server = json_req.get("mid_name", "")
-                print (req_mid_server)
-
+               
+                # req_mid_server = json_req.get("mid_name", "")
+                # print (req_mid_server)
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
                 else:
@@ -153,7 +152,7 @@ def main():
 
                 switch_user = None
                 switch_password = None
-                switch_details = requests.get(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=('admin', 'Danut24680')).json()
+                switch_details = requests.get(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=(glv.USERNAME, glv.PASSWORD)).json()
 
                 for i in range(len(switch_details['result'])):
                     if (switch_details['result'][i]['ip'] == req_switch_ip):
