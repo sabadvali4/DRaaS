@@ -5,16 +5,18 @@ from functions import run_command_and_get_json, change_interface_mode
 import glv, api
 from glv import added_vlan
 import logging
+import settings
+from settings import *
+settings.init()
 
 # Create a Redis server connection
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
 current_task_que = "current_task_que"
-snow_url = "https://bynetprod.service-now.com/api/bdml/switch"
-switch_info_url = "https://bynetprod.service-now.com/api/bdml/parse_switch_json/SwitchIPs"
-get_cmds_url = snow_url + "/getCommands"
-update_req_url = snow_url + "/SetCommandStatus"
+switch_info_url = settings.switch_info_url
+get_cmds_url = settings.url + "/getCommands"
+update_req_url = settings.url + "/SetCommandStatus"
 
 # get an instance of the logger object this module will use
 logger = logging.getLogger(__name__)
@@ -79,7 +81,7 @@ def send_status_update(ID, STATUS, OUTPUT):
             "command_output": f"{OUTPUT}"
         }
     )
-    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'}, auth=(glv.USERNAME, glv.PASSWORD))
+    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password))
 
 # Function to update the credentials dictionary with the status
 def update_credential_dict(ip, username, password, status):
@@ -131,9 +133,6 @@ def main():
                 req_switch_ip = json_req["switch_ip"]
                 req_interface_name = json_req["interface_name"]
                 req_port_mode = json_req["port_mode"]
-               
-                # req_mid_server = json_req.get("mid_name", "")
-                # print (req_mid_server)
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
                 else:
@@ -152,7 +151,7 @@ def main():
 
                 switch_user = None
                 switch_password = None
-                switch_details = requests.get(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=(glv.USERNAME, glv.PASSWORD)).json()
+                switch_details = requests.get(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=(settings.username, settings.password)).json()
 
                 for i in range(len(switch_details['result'])):
                     if (switch_details['result'][i]['ip'] == req_switch_ip):

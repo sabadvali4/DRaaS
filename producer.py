@@ -3,16 +3,16 @@ import re, json
 import time; from time import * 
 import requests; import re; import json; import logging
 from datetime import datetime
-import glv
 import settings
+settings.init()
+
 
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
-snow_url = "https://bynetprod.service-now.com/api/bdml/switch"
-switch_info_url = snow_url + "/getSwitchLogin"
-get_cmds_url = snow_url + "/getCommands"
-update_req_url = snow_url + "/SetCommandStatus"
-update_status_url= snow_url + "/postHealthMonitoring"
+switch_info_url = settings.url + "/getSwitchLogin"
+get_cmds_url = settings.url + "/getCommands"
+update_req_url = settings.url + "/SetCommandStatus"
+update_status_url= settings.url + "/postHealthMonitoring"
 
 # get an instance of the logger object this module will use
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def get_requests():
-    commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(glv.USERNAME, glv.PASSWORD)).json()
+    commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
     #print (commands['result'])
     return commands['result']
 
@@ -54,7 +54,7 @@ def send_status_update(ID, STATUS, OUTPUT):
             })
         # print(payload)
         answer = requests.post(update_req_url, data=payload,
-                               headers={'Content-Type': 'application/json'}, auth=(glv.USERNAME, glv.PASSWORD)).json()
+                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
 
     except Exception as e:
         logger.error('Error in send_status_update: %s', str(e))
@@ -71,7 +71,7 @@ def send_health_monitoring_update(mid_name, items_in_queue, items_in_process, ti
             })
         print(payload)
         answer = requests.post(update_status_url, data=payload,
-                               headers={'Content-Type': 'application/json'}, auth=(glv.USERNAME, glv.PASSWORD)).json()
+                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
 
     except Exception as e:
         logger.error('Error in send_health_monitoring_update: %s', str(e))
@@ -90,7 +90,7 @@ def redis_queue_push(TASKS):
 
                     else:
                         # Check if mid_name matches the specified value
-                        if TASK.get("mid_name", "") == glv.MID_SERVER:
+                        if TASK.get("mid_name", "") == settings.mid_server:
                             redis_server.rpush(queue_name, str(TASK))
                             logger.info('Added %s to queue', TASK["record_id"])
                             print(f'added {TASK["record_id"]} to queue')
@@ -98,7 +98,7 @@ def redis_queue_push(TASKS):
                             logger.info('Skipped %s because mid_name does not match', TASK["record_id"])
                 else:
                     # Check if mid_name matches the specified value
-                    if TASK.get("mid_name", "") == glv.MID_SERVER:
+                    if TASK.get("mid_name", "") == settings.mid_server:
                         redis_server.rpush(queue_name, str(TASK))
                         logger.info('Added %s to queue', TASK["record_id"])
                         print(f'added {TASK["record_id"]} to queue')
@@ -115,5 +115,5 @@ if __name__ == "__main__":
         redis_queue_push(get_requests())
         # Format timestamp as HH:MM:SS
         timestamp = datetime.now().strftime('%H:%M:%S')
-        send_health_monitoring_update(glv.MID_SERVER, redis_server.llen(queue_name), (tasks_len - redis_server.llen(queue_name)), timestamp)
+        send_health_monitoring_update(settings.mid_server, redis_server.llen(queue_name), (tasks_len - redis_server.llen(queue_name)), timestamp)
         sleep(10)

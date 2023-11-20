@@ -6,10 +6,10 @@ After=network.target
 Type=simple
 Restart=always
 User=devops
-WorkingDirectory=/home/devops/DRaaS
+WorkingDirectory= /home/devops/DRaaS
 ExecStart=/bin/python3 /home/devops/DRaaS/consumer.py
-StandardOutput=append:/home/devops/consumer_log1.log
-StandardError=append:/home/devops/consumer_log2.log
+StandardOutput=append:/var/log/consumer.log
+StandardError=append:/var/log/consumer_error.log
 SyslogIdentifier=consumer
 
 [Install]

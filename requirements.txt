@@ -1,17 +1,18 @@
 # json
 threading
 unittest
-datetime
 socket
 redis
-requests
-python-dotenv
-paramiko
-configparser
-confparser
 ntc-templates
 netmiko
 flask
 ntc_templates
 subprocess
 flasgger
+
+requests == 2.25.1
+python-dotenv == 0.20.0
+configparser == 5.2.0
+datetime == 4.7
+paramiko == 2.12.0
+confparser == 0.1.7

@@ -1,16 +1,8 @@
-NULL = 0
-import time, sys, threading
-from unittest import result
-import requests, json, re, os
-from datetime import datetime
-import paramiko, configparser, confparser
-from ntc_templates.parse import parse_output
-from netmiko import ConnectHandler
-import json
-from dotenv import load_dotenv
-from socket import *
-import glv
-from glv import added_vlan  # Import the added_vlan list
+import time, sys, threading; from unittest import result; import requests, json, re, os
+from datetime import datetime; import paramiko, configparser, confparser; from ntc_templates.parse import parse_output
+from netmiko import ConnectHandler; import json
+from dotenv import load_dotenv; from socket import *
+import glv; from glv import added_vlan  # Import the added_vlan list
 load_dotenv()
 
 config = configparser.ConfigParser()
@@ -101,56 +93,6 @@ def run_command_and_get_json(ip_address, username, password, command):
     finally:
         # Close the SSH connection when done
         ssh_client.close_connection()
-
-def set_switch_interface(ip_address,interface, ifaceStatus="enable"):
-    """
-    This function ssh with <switch_user>@ip to ip and change the status of interface
-    """
-    print("sshing to: " + switch_user + "@" + ip_address)
-    change_interface_mode(ip_address, "shapi", "patish", None, "interface="+interface, "status=disable")
-
-def get_commands_from_snow(hostname=None, ip=None):
-    """
-    This function gets commands from snow API
-    """
-    commandsUrl = "https://bynetprod.service-now.com/api/bdml/switch" + "/getCommands"
-    myparams = None
-
-    if ip is not None:
-        myparams = {"switch_ip": str(ip)}
-    if hostname is not None:
-        myparams = {"hostname": str(hostname)}
-
-    print("getting commands from snow: hostname:" + str(hostname))
-    print("getting commands from snow: ip:" + str(ip))
-    print("getting commands from url:" + str(commandsUrl))
-
-    response = requests.get(commandsUrl, headers={'Content-Type': 'application/json'}, params=myparams, auth=(switch_user, switch_password))
-
-    msg = "status is: " + str(response.status_code)
-    myresponse = is_json(str(response.content)[2:-1])
-    print(msg)
-    
-    if(myresponse):
-        print('json response: ')
-        print(response.json())
-    else:
-        print('none json response: ')
-        print(str(response))
-
-    
-    if response.status_code in [200,201]:
-      if myresponse:
-        myjson = json.loads(str(response.content)[2:-1])['result']
-        if not myjson['commands']:
-            return []
-        else:
-            print(myjson['commands'][0]['command'])
-            return myjson['commands'][0]['command']
-      else:
-          return 'error bad payload'
-    else:
-        return 'bad response from snow code:' + str(response.status_code) + ' message: ' + str(myresponse)
 
 def is_json(myjson):
   try:

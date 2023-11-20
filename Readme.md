@@ -91,6 +91,9 @@ export PASSWORD="password"
     sudo systemctl status consumer
     ```
 
+--if not running try:
+  sudo cp -a config /opt/
+
 ### Interacting with APIs
 - The system provides the following APIs:
 

@@ -8,8 +8,8 @@ Restart=always
 User=devops
 WorkingDirectory=/home/devops/DRaaS
 ExecStart=/bin/python3 /home/devops/DRaaS/producer.py
-StandardOutput=append:/home/devops/producer_log1.log
-StandardError=append:/home/devops/producer_log2.log
+StandardOutput=append:/var/log/producer.log
+StandardError=append:/var/log/producer_error.log
 SyslogIdentifier=producer
 
 [Install]
