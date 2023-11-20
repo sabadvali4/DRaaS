@@ -1,0 +1,16 @@
+[Unit]
+Description=Producer
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+User=devops
+WorkingDirectory=/home/devops/DRaaS
+ExecStart=/bin/python3 /home/devops/DRaaS/producer.py
+StandardOutput=append:/var/log/producer.log
+StandardError=append:/var/log/producer_error.log
+SyslogIdentifier=producer
+
+[Install]
+WantedBy=multi-user.target

@@ -4,37 +4,74 @@ from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
 import glv, api
 from glv import added_vlan
+import logging
+import settings
+from settings import *
+settings.init()
 
 # Create a Redis server connection
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
 current_task_que = "current_task_que"
-snow_url = "https://bynetprod.service-now.com/api/bdml/switch"
-switch_info_url = "https://bynetprod.service-now.com/api/bdml/parse_switch_json/SwitchIPs"
-get_cmds_url = snow_url + "/getCommands"
-update_req_url = snow_url + "/SetCommandStatus"
+switch_info_url = settings.switch_info_url
+get_cmds_url = settings.url + "/getCommands"
+update_req_url = settings.url + "/SetCommandStatus"
+
+# get an instance of the logger object this module will use
+logger = logging.getLogger(__name__)
+
+# Check if the systemd.journal module is available
+try:
+    from systemd.journal import JournaldLogHandler
+
+    # instantiate the JournaldLogHandler to hook into systemd
+    journald_handler = JournaldLogHandler()
+
+    # set a formatter to include the level name
+    journald_handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+
+    # add the journald handler to the current logger
+    logger.addHandler(journald_handler)
+
+except ImportError:
+    # systemd.journal module is not available, use basic console logging
+    logging.basicConfig(level=logging.DEBUG)
+
+# optionally set the logging level
+logger.setLevel(logging.DEBUG)
 
 # Dictionary to store credentials for switches
 credential_dict = {}
 
 # Function to set a value in Redis
 def redis_set(KEY="", VALUE="", OUTPUT=""):
-    if OUTPUT:
-        OUTPUT = re.sub("\"", "\\\"", "      ".join(OUTPUT.splitlines()))
-    else:
-        OUTPUT = ""  # Handle the case where OUTPUT is None or empty
-    redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
-    #print(redis_server.get(KEY))
+    try:
+        if OUTPUT:
+            OUTPUT = re.sub("\"", "\\\"", "      ".join(OUTPUT.splitlines()))
+        else:
+            OUTPUT = ""  # Handle the case where OUTPUT is None or empty
+        redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
+        #print(redis_server.get(KEY))
+        logger.info('Redis set - Key: %s, Value: %s', KEY, VALUE)
+    except Exception as e:
+        logger.error('Error in redis_set: %s', str(e))
+
 
 # Function to get the next request from the Redis queue
 def redis_queue_get():
-    req = redis_server.lpop(queue_name)
-    if req is not None:
-        return req.decode()
-    else:
+    try:
+        req = redis_server.lpop(queue_name)
+        print(req)
+        if req is not None:
+            logger.info('Redis queue get - Request: %s', req.decode())
+            return req.decode()
+        else:
+            return None
+    except Exception as e:
+        logger.error('Error in redis_queue_get: %s', str(e))
         return None
-
+    
 # Function to send a status update to the ServiceNow API
 def send_status_update(ID, STATUS, OUTPUT):
     payload = json.dumps(
@@ -44,7 +81,7 @@ def send_status_update(ID, STATUS, OUTPUT):
             "command_output": f"{OUTPUT}"
         }
     )
-    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'}, auth=('admin', 'Danut24680'))
+    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password))
 
 # Function to update the credentials dictionary with the status
 def update_credential_dict(ip, username, password, status):
@@ -114,7 +151,7 @@ def main():
 
                 switch_user = None
                 switch_password = None
-                switch_details = requests.get(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=('admin', 'Danut24680')).json()
+                switch_details = requests.get(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=(settings.username, settings.password)).json()
 
                 for i in range(len(switch_details['result'])):
                     if (switch_details['result'][i]['ip'] == req_switch_ip):
