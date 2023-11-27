@@ -58,7 +58,6 @@ def redis_set(KEY="", VALUE="", OUTPUT=""):
     except Exception as e:
         logger.error('Error in redis_set: %s', str(e))
 
-
 # Function to get the next request from the Redis queue
 def redis_queue_get():
     try:
@@ -75,32 +74,19 @@ def redis_queue_get():
     
 # Function to send a status update to the ServiceNow API
 def send_status_update(ID, STATUS, OUTPUT):
-    payload = json.dumps(
-        {
-            "command_id": f"{ID}",
-            "command_status": f"{STATUS}",
-            "command_output": f"{OUTPUT}"
-        }
-    )
-    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password))
-
+    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{STATUS}", "command_output": f"{OUTPUT}"})
+    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
+                           auth=(settings.username, settings.password))
+    
 # Function to update the credentials dictionary with the status
 def update_credential_dict(ip, username, password, status):
     timestamp = time()
-    credential_dict[ip] = {
-        "timestamp": timestamp,
-        "status": status,
-        "user": username,
-        "pass": password
-    }
+    credential_dict[ip] = {"timestamp": timestamp, "status": status, "user": username, "pass": password}
 
 # Function to get credentials from the dictionary
 def get_credentials(ip):
-    if ip in credential_dict:
-        credential = credential_dict[ip]
-        if credential["status"] == "success":
-            return credential["user"], credential["pass"]
-    return None, None
+    credential = credential_dict.get(ip, {})
+    return (credential["user"], credential["pass"]) if credential.get("status") == "success" else (None, None)
 
 # Main function
 def main():
@@ -141,7 +127,7 @@ def main():
                     req_cmd = ""
             else:
                 print("Queue is empty. Waiting...")
-
+                
             task_sts = redis_server.get(req_id)
             if task_sts is None:
                 redis_set(req_id, "active")
@@ -152,8 +138,10 @@ def main():
 
                 switch_user = None
                 switch_password = None
+                switch_device_type = None
                 switch_details = requests.post(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=(settings.username, settings.password)).json()
                 print(switch_details)
+                
                 for i in range(len(switch_details['result'])):
                     if (switch_details['result'][i]['ip'] == req_switch_ip):
                         switch_user = switch_details['result'][i]['username']
@@ -161,6 +149,7 @@ def main():
                         switch_device_type = switch_details['result'][i]['device_type']
                         break
 
+                print(switch_device_type)
 
                 if switch_device_type is not None:
   
@@ -264,9 +253,9 @@ def main():
                     elif switch_device_type == 'gaia':
                     # Execute the Gaia-specific logic from gaia_api_calls.py
                         try:
-                            sid = gaia_api_calls.login(req_switch_ip, switch_user, switch_password)
-                            if discovery == 1:
-                                show_interfaces_result = gaia_api_calls.api_call(req_switch_ip, "443", 'v1.5/show-interfaces', "", sid)
+                            sid = gaia_api_calls.gaia_login(req_switch_ip, switch_user, switch_password)
+                            if discovery == "1":
+                                show_interfaces_result = gaia_api_calls.gaia_show_interfaces(req_switch_ip, sid)
 
                                 # Update status and output for discovery
                                 status_message = "status: success"
@@ -275,12 +264,12 @@ def main():
                                 redis_set(req_id, "completed", output)
                                 task_sts = json.loads(redis_server.get(req_id).decode())["status"]
                                 send_status_update(req_id, task_sts, output)
-                                
+
                         except Exception as error:
                             print(error)
     
                         # Logout from Gaia
-                        gaia_api_calls.api_call(req_switch_ip, "443", "logout", {}, sid)
+                        gaia_api_calls.gaia_logout(req_switch_ip, sid)
                 
                 else:
                     print(f"No matching switch found for IP: {req_switch_ip}")

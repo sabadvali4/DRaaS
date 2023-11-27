@@ -3,7 +3,6 @@ threading
 unittest
 socket
 redis
-ntc-templates
 netmiko
 flask
 ntc_templates
