@@ -2,6 +2,7 @@ import redis, requests
 import re, json, sys, dotenv
 from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
+import gaia_api_calls
 import glv, api
 from glv import added_vlan
 import logging
@@ -14,7 +15,7 @@ redis_server = redis.Redis()
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
 current_task_que = "current_task_que"
-switch_info_url = settings.switch_info_url
+switch_info_url = "https://bynetprod.service-now.com/api/bdml/switch/getSwitchLogin"
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 
@@ -129,16 +130,16 @@ def main():
                 json_req = json.loads(no_none)
                 req_id = json_req["record_id"]
                 req_vlans = json_req["vlans"]
-                req_switch = "2aa1ebb587571d905db3db1cbbbb359d"  # json_req["switch"]
+                req_switch =   json_req["switch"] #2aa1ebb587571d905db3db1cbbbb359d
                 req_switch_ip = json_req["switch_ip"]
                 req_interface_name = json_req["interface_name"]
                 req_port_mode = json_req["port_mode"]
+                discovery=json_req["discovery"]
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
                 else:
                     req_cmd = ""
             else:
-            # Handle the case when the queue is empty, e.g., you can log a message or simply continue
                 print("Queue is empty. Waiting...")
 
             task_sts = redis_server.get(req_id)
@@ -151,108 +152,139 @@ def main():
 
                 switch_user = None
                 switch_password = None
-                switch_details = requests.get(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=(settings.username, settings.password)).json()
-
+                switch_details = requests.post(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=(settings.username, settings.password)).json()
+                print(switch_details)
                 for i in range(len(switch_details['result'])):
                     if (switch_details['result'][i]['ip'] == req_switch_ip):
                         switch_user = switch_details['result'][i]['username']
                         switch_password = switch_details['result'][i]['password']
+                        switch_device_type = switch_details['result'][i]['device_type']
+                        break
 
-                # Get credentials from the dictionary
-                retrieved_user, retrieved_password = get_credentials(req_switch_ip)
 
-                if retrieved_user is None:
-                    retrieved_user = switch_user
-                    retrieved_password = switch_password
-                if (retrieved_user is not None and retrieved_password is not None):
-                    # Check if the credentials status is 'failed' and the last attempt was 5 minutes ago
-                    if (
-                            retrieved_user == switch_user and
-                            retrieved_password == switch_password and
-                            req_switch_ip in credential_dict and
-                            credential_dict[req_switch_ip]["status"] == "failed"):
+                if switch_device_type is not None:
+  
+                    # Get credentials from the dictionary
+                    retrieved_user, retrieved_password = get_credentials(req_switch_ip)
 
-                        time_since_last_attempt = time() - credential_dict[req_switch_ip]["timestamp"]
-                        if time_since_last_attempt > 300:  # 300 seconds = 5 minutes
-                            try:
-                                if req_cmd != "" and req_port_mode == "":
-                                    if req_interface_name != "":
-                                        output = run_command_and_get_json(req_switch_ip, retrieved_user, retrieved_password, req_cmd)
-                                    else:
-                                        output = run_command_and_get_json(req_switch_ip, retrieved_user, retrieved_password, req_cmd)
-                                else:
-                                    output = change_interface_mode(req_switch_ip, retrieved_user, retrieved_password, req_interface_name, req_port_mode, req_vlans)
+                    if retrieved_user is None:
+                        retrieved_user = switch_user
+                        retrieved_password = switch_password
+                    if switch_device_type == 'switch':
+                        if (retrieved_user is not None and retrieved_password is not None):
+                            # Check if the credentials status is 'failed' and the last attempt was 5 minutes ago
+                            if (
+                                    retrieved_user == switch_user and
+                                    retrieved_password == switch_password and
+                                    req_switch_ip in credential_dict and
+                                    credential_dict[req_switch_ip]["status"] == "failed"):
 
-                                if glv.added_vlan is not None:  # Check if a VLAN was added
-                                    output_message = "Added VLANs: " + ", ".join(map(str, added_vlan))
-                                    glv.added_vlan = None  # Reset it after displaying the message
-                                else:
-                                    output_message = ""
+                                time_since_last_attempt = time() - credential_dict[req_switch_ip]["timestamp"]
+                                if time_since_last_attempt > 300:  # 300 seconds = 5 minutes
+                                    try:
+                                        if req_cmd != "" and req_port_mode == "":
+                                            if req_interface_name != "":
+                                                output = run_command_and_get_json(req_switch_ip, retrieved_user, retrieved_password, req_cmd)
+                                            else:
+                                                output = run_command_and_get_json(req_switch_ip, retrieved_user, retrieved_password, req_cmd)
+                                        else:
+                                            output = change_interface_mode(req_switch_ip, retrieved_user, retrieved_password, req_interface_name, req_port_mode, req_vlans)
+
+                                        if glv.added_vlan is not None:  # Check if a VLAN was added
+                                            output_message = "Added VLANs: " + ", ".join(map(str, added_vlan))
+                                            glv.added_vlan = None  # Reset it after displaying the message
+                                        else:
+                                            output_message = ""
                                 
-                                if output == None:
-                                    output = "operation is done."
+                                        if output == None:
+                                            output = "operation is done."
 
-                            except Exception as error:
-                                status_message = "status: failed"
-                                output = f"{status_message} {error}"
-                                send_status_update(req_id, "failed", error)
-                                # Update the credentials with a "failed" status if not already present
-                                if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
-                                    update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+                                    except Exception as error:
+                                        status_message = "status: failed"
+                                        output = f"{status_message} {error}"
+                                        send_status_update(req_id, "failed", error)
+                                        # Update the credentials with a "failed" status if not already present
+                                        if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
+                                            update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+
+                                    else:
+                                        status_message = "status: success"
+                                        if output_message is not None:
+                                            output = f"{status_message}\n{output_message}\n{output}"
+                                        else:
+                                            output = f"{status_message}\n{output}"
+                                        redis_set(req_id, "completed", output)
+                                        task_sts = json.loads(redis_server.get(req_id).decode())["status"]
+                                        send_status_update(req_id, task_sts, output)
+                                        update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
 
                             else:
-                                status_message = "status: success"
-                                if output_message is not None:
-                                    output = f"{status_message}\n{output_message}\n{output}"
+                                try:
+                                    if req_cmd != "" and req_port_mode == "":
+                                        if req_interface_name != "":
+                                            output = run_command_and_get_json(req_switch_ip, retrieved_user, retrieved_password, req_cmd)
+                                        else:
+                                            output = run_command_and_get_json(req_switch_ip, retrieved_user, retrieved_password, req_cmd)
+                                    else:
+                                        output = change_interface_mode(req_switch_ip, retrieved_user, retrieved_password, req_interface_name, req_port_mode, req_vlans)
+
+                                    if glv.added_vlan is not None:  # Check if a VLAN was added
+                                        output_message = "Added VLANs: " + ", ".join(map(str, added_vlan))
+                                        glv.added_vlan = None  # Reset it after displaying the message
+                                    else:
+                                        output_message = ""
+
+                                    if output == None:
+                                        output = "operation is done."
+
+                                except Exception as error:
+                                    status_message = "status: failed"
+                                    output = f"{status_message} {error}"
+                                    send_status_update(req_id, "failed", error)
+                                    #Update the credentials with a "failed" status if not already present
+                                    if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
+                                        update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+
                                 else:
-                                    output = f"{status_message}\n{output}"
+                                    status_message = "status: success"
+                                    if output_message is not None:
+                                        output = f"{status_message}\n{output_message}\n{output}"
+                                    else:
+                                        output = f"{status_message}\n{output}"
+                                    redis_set(req_id, "completed", output)
+                                    task_sts = json.loads(redis_server.get(req_id).decode())["status"]
+                                    send_status_update(req_id, task_sts, output)
+                                    update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
+
+                        # When a task is completed, remove the "current_task" key
+                        redis_server2.delete("current_task")
+
+                        print(credential_dict)
+
+                    elif switch_device_type == 'gaia':
+                    # Execute the Gaia-specific logic from gaia_api_calls.py
+                        try:
+                            sid = gaia_api_calls.login(req_switch_ip, switch_user, switch_password)
+                            if discovery == 1:
+                                show_interfaces_result = gaia_api_calls.api_call(req_switch_ip, "443", 'v1.5/show-interfaces', "", sid)
+
+                                # Update status and output for discovery
+                                status_message = "status: success"
+                                output_message = json.dumps(show_interfaces_result, indent=4)
+                                output = f"{status_message}\n{output_message}"
                                 redis_set(req_id, "completed", output)
                                 task_sts = json.loads(redis_server.get(req_id).decode())["status"]
                                 send_status_update(req_id, task_sts, output)
-                                update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
-
-                    else:
-                        try:
-                            if req_cmd != "" and req_port_mode == "":
-                                if req_interface_name != "":
-                                    output = run_command_and_get_json(req_switch_ip, retrieved_user, retrieved_password, req_cmd)
-                                else:
-                                    output = run_command_and_get_json(req_switch_ip, retrieved_user, retrieved_password, req_cmd)
-                            else:
-                                output = change_interface_mode(req_switch_ip, retrieved_user, retrieved_password, req_interface_name, req_port_mode, req_vlans)
-
-                            if glv.added_vlan is not None:  # Check if a VLAN was added
-                                output_message = "Added VLANs: " + ", ".join(map(str, added_vlan))
-                                glv.added_vlan = None  # Reset it after displaying the message
-                            else:
-                                output_message = ""
-
-                            if output == None:
-                                output = "operation is done."
-
+                                
                         except Exception as error:
-                            status_message = "status: failed"
-                            output = f"{status_message} {error}"
-                            send_status_update(req_id, "failed", error)
-                            #Update the credentials with a "failed" status if not already present
-                            if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
-                                update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+                            print(error)
+    
+                        # Logout from Gaia
+                        gaia_api_calls.api_call(req_switch_ip, "443", "logout", {}, sid)
+                
+                else:
+                    print(f"No matching switch found for IP: {req_switch_ip}")
 
-                        else:
-                            status_message = "status: success"
-                            if output_message is not None:
-                                output = f"{status_message}\n{output_message}\n{output}"
-                            else:
-                                output = f"{status_message}\n{output}"
-                            redis_set(req_id, "completed", output)
-                            task_sts = json.loads(redis_server.get(req_id).decode())["status"]
-                            send_status_update(req_id, task_sts, output)
-                            update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
-
-                # When a task is completed, remove the "current_task" key
-                redis_server2.delete("current_task")
-
-                print(credential_dict)
 
             elif "completed" in str(task_sts):
                 continue

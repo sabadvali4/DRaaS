@@ -40,7 +40,7 @@ logger.setLevel(logging.DEBUG)
 
 def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
-    #print (commands['result'])
+    print (commands['result'])
     return commands['result']
 
 
