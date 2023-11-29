@@ -1,19 +1,22 @@
 #!/bin/bash
 
-# Navigate to your project directory
-cd /home/devops/DRaaS
+# Get the current working directory
+project_dir="$(pwd)"
 
 # Log file path
-log_file="/home/devops/DRaaS/update_script.log"
-
-# Fetch the latest changes from the remote repository
-git fetch origin
+log_file="$project_dir/update_script.log"
 
 # Get the current local branch
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 
+# Fetch the latest changes from the remote repository for the current branch
+git fetch origin "$current_branch"
+
 # Update the local branch with the latest changes
-git pull origin $current_branch
+git pull origin "$current_branch"
+
+# Copy the 'config' directory to /opt/
+sudo cp -a config /opt/
 
 # Restart your services and log the output
 sudo systemctl restart producer.service > "$log_file" 2>&1

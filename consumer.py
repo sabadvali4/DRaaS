@@ -8,6 +8,7 @@ from glv import added_vlan
 import logging
 import settings
 from settings import *
+import Vcenter_call
 settings.init()
 
 # Create a Redis server connection
@@ -127,7 +128,7 @@ def main():
                     req_cmd = ""
             else:
                 print("Queue is empty. Waiting...")
-                
+
             task_sts = redis_server.get(req_id)
             if task_sts is None:
                 redis_set(req_id, "active")
