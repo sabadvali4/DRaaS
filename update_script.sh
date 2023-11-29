@@ -9,11 +9,9 @@ log_file="$project_dir/update_script.log"
 # Get the current local branch
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 
-# Fetch the latest changes from the remote repository for the current branch
+# Discard local changes and reset to the remote branch
 git fetch origin "$current_branch"
-
-# Update the local branch with the latest changes
-git pull origin "$current_branch"
+git reset --hard "origin/$current_branch"
 
 # Copy the 'config' directory to /opt/
 sudo cp -a config /opt/
@@ -32,3 +30,4 @@ if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
 else
     echo "Something went wrong. Check the status of your services. See the log file for details: $log_file"
 fi
+
