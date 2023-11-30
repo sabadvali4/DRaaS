@@ -4,7 +4,7 @@
 project_dir="$(pwd)"
 
 # Log file path
-log_file="$project_dir/update_script.log"
+log_file="/var/log/update_script.log"
 
 # Find the configuration file under the 'config' directory
 config_dir="$project_dir/config"
@@ -16,12 +16,27 @@ if [ -z "$ini_file" ]; then
     exit 1
 fi
 
-# Discard local changes and reset to the remote branch
-git fetch origin "$current_branch"
-git reset --hard "origin/$current_branch"
+# Back up the parameters.ini file
+backup_dir="/opt/backup"
+backup_file="$backup_dir/parameters_backup_$(date '+%Y%m%d%H%M%S').ini"
+sudo mkdir -p "$backup_dir"
+sudo cp "$ini_file" "$backup_file"
+
+# Parse the parameters.ini file to get the values
+mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
+
+# Ensure you are on the main branch
+git checkout main
+
+# Discard local changes and reset to the remote main branch
+git fetch origin main
+git reset --hard origin/main
+
+# Install Python dependencies
+pip install -r requirements.txt
 
 # Copy the 'config' directory to /opt/
-sudo cp -a config /opt/
+sudo cp -a "$config_dir" /opt/
 
 # Restart your services and log the output
 sudo systemctl restart producer.service > "$log_file" 2>&1
@@ -38,4 +53,3 @@ if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
 else
     echo "Something went wrong. Check the status of your services. See the log file for details: $log_file"
 fi
-
