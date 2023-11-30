@@ -7,7 +7,7 @@ config_file="$HOME/.project_config"
 get_project_info() {
     read -p "Enter the project directory: " project_dir
     read -p "Does the project directory already contain a virtual environment? (y/n): " has_venv
-    eecho "$project_dir|$has_venv" > "$config_file"
+    echo "$project_dir|$has_venv" > "$config_file"
 }
 
 # Check if the project information is saved, otherwise ask the user
