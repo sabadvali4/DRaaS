@@ -40,13 +40,16 @@ git reset --hard origin/api-fixes
 
 # Create and activate virtual environment
 python3 -m venv venv
-source venv/bin/activate
+source $project_dir/venv/bin/activate
 
 # Install Python dependencies
 pip install -r requirements.txt
 
 # Copy the 'config' directory to /opt/
 sudo cp -a "$config_dir" /opt/
+
+sudo cp $project_dir/producer.service /etc/systemd/system/
+sudo cp $project_dir/DRaaS/consumer.service /etc/systemd/system/
 
 # Reload systemd to pick up changes
 sudo systemctl daemon-reload
