@@ -8,7 +8,6 @@ from glv import added_vlan
 import logging
 import settings
 from settings import *
-import Vcenter_call
 settings.init()
 
 # Create a Redis server connection
