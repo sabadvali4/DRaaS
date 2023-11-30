@@ -38,6 +38,10 @@ git checkout api-fixes
 git fetch origin api-fixes
 git reset --hard origin/api-fixes
 
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
 # Install Python dependencies
 pip install -r requirements.txt
 
@@ -54,6 +58,9 @@ sudo systemctl restart consumer.service >> "$log_file" 2>&1
 # Check the status of the services
 producer_status=$(sudo systemctl is-active producer.service)
 consumer_status=$(sudo systemctl is-active consumer.service)
+
+# Deactivate virtual environment
+deactivate
 
 # Print the status message
 if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
