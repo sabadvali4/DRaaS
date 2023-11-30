@@ -18,8 +18,14 @@ fi
 
 # Back up the parameters.ini file
 backup_dir="/opt/backup"
+
+# Check if the backup directory exists, if not, create it
+if [ ! -d "$backup_dir" ]; then
+    sudo mkdir -p "$backup_dir"
+fi
 backup_file="$backup_dir/parameters_backup.ini"
-sudo mkdir -p "$backup_dir"
+
+# Copy the parameters.ini file to the backup directory
 sudo cp "$ini_file" "$backup_file"
 
 # Parse the parameters.ini file to get the values
@@ -37,6 +43,9 @@ pip install -r requirements.txt
 
 # Copy the 'config' directory to /opt/
 sudo cp -a "$config_dir" /opt/
+
+# Reload systemd to pick up changes
+sudo systemctl daemon-reload
 
 # Restart your services and log the output
 sudo systemctl restart producer.service > "$log_file" 2>&1
