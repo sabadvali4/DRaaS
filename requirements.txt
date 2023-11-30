@@ -1,13 +1,12 @@
 ntc_templates
-logging
 configparser==5.2.0
 confparser==0.1.7
 
 Flask==2.0.1
-redis==3.6.0
+redis
 flasgger==0.9.5
-requests==2.26.0
-netmiko==3.8.0
-ntc-templates==2.6.3
+requests
+netmiko
 python-dotenv==0.19.0
 paramiko==2.12.0
+
