@@ -26,11 +26,11 @@ sudo cp "$ini_file" "$backup_file"
 mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
 
 # Ensure you are on the main branch
-git checkout main
+git checkout api-fixes
 
 # Discard local changes and reset to the remote main branch
-git fetch origin main
-git reset --hard origin/main
+git fetch origin api-fixes
+git reset --hard origin/api-fixes
 
 # Install Python dependencies
 pip install -r requirements.txt
