@@ -8,9 +8,13 @@ get_project_info() {
     echo "$project_dir|$has_venv" > "$config_file"
 }
 
+
+
 # Check if the project information is saved, otherwise ask the user
 if [ -f "$config_file" ]; then
     IFS='|' read -r project_dir has_venv < "$config_file"
+    echo $project_dir
+    echo $has_venvS
 else
     get_project_info
 fi
