@@ -16,10 +16,9 @@ if [ -z "$ini_file" ]; then
     exit 1
 fi
 
-# Back up the parameters.ini file with a timestamp
+# Back up the parameters.ini file
 backup_dir="/opt/backup"
-timestamp=$(date '+%Y%m%d%H%M%S')
-backup_file="$backup_dir/parameters_backup_${timestamp}.ini"
+backup_file="$backup_dir/parameters_backup.ini"
 sudo mkdir -p "$backup_dir"
 sudo cp "$ini_file" "$backup_file"
 
@@ -54,3 +53,4 @@ if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
 else
     echo "Something went wrong. Check the status of your services. See the log file for details: $log_file"
 fi
+
