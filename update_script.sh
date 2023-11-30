@@ -2,6 +2,11 @@
 
 # File to store project directory and venv flag
 config_file="$HOME/.project_config"
+# Check if the config directory exists, if not, create it
+if [ ! -d "$config_file" ]; then
+    sudo mkdir -p "$config_file"
+fi
+
 
 # Function to prompt user for project directory
 get_project_info() {
