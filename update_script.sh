@@ -1,5 +1,5 @@
 # File to store project directory and venv flag
-config_file="$HOME/.project_config"
+config_file="/etc/.project_config"
 
 # Function to prompt user for project directory
 get_project_info() {
