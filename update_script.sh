@@ -49,7 +49,7 @@ pip install -r requirements.txt
 sudo cp -a "$config_dir" /opt/
 
 sudo cp $project_dir/producer.service /etc/systemd/system/
-sudo cp $project_dir/DRaaS/consumer.service /etc/systemd/system/
+sudo cp $project_dir/consumer.service /etc/systemd/system/
 
 # Reload systemd to pick up changes
 sudo systemctl daemon-reload
