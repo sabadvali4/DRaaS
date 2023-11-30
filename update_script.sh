@@ -1,12 +1,5 @@
-#!/bin/bash
-
 # File to store project directory and venv flag
 config_file="$HOME/.project_config"
-# Check if the config directory exists, if not, create it
-if [ ! -d "$config_file" ]; then
-    sudo mkdir -p "$config_file"
-fi
-
 
 # Function to prompt user for project directory
 get_project_info() {
@@ -27,7 +20,7 @@ fi
 log_file="/var/log/update_script.log"
 
 # Find the configuration file under the 'config' directory
-config_dir="$project_dir/config"
+config_dir="$project_dir/config/"
 ini_file="$(find "$config_dir" -maxdepth 1 -type f -iname "*.ini" -print -quit)"
 
 # Check if the parameters.ini file was found
