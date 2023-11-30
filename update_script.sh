@@ -16,9 +16,10 @@ if [ -z "$ini_file" ]; then
     exit 1
 fi
 
-# Back up the parameters.ini file
+# Back up the parameters.ini file with a timestamp
 backup_dir="/opt/backup"
-backup_file="$backup_dir/parameters_backup_$(date '+%Y%m%d%H%M%S').ini"
+timestamp=$(date '+%Y%m%d%H%M%S')
+backup_file="$backup_dir/parameters_backup_${timestamp}.ini"
 sudo mkdir -p "$backup_dir"
 sudo cp "$ini_file" "$backup_file"
 
