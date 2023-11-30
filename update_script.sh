@@ -1,7 +1,24 @@
 #!/bin/bash
 
 # Get the current working directory
-project_dir="$(pwd)"
+#project_dir="$(pwd)"
+
+# File to store project directory
+config_file="$HOME/.project_config"
+
+# Function to prompt user for project directory
+get_project_dir() {
+    read -p "Enter the project directory: " project_dir
+    echo "$project_dir" > "$config_file"
+}
+
+# Check if the project directory is saved, otherwise ask the user
+if [ -f "$config_file" ]; then
+    project_dir=$(cat "$config_file")
+else
+    get_project_dir
+fi
+
 
 # Log file path
 log_file="/var/log/update_script.log"
