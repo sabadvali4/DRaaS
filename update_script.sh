@@ -1,22 +1,20 @@
 #!/bin/bash
 
-# Get the current working directory
-#project_dir="$(pwd)"
-
-# File to store project directory
+# File to store project directory and venv flag
 config_file="$HOME/.project_config"
 
 # Function to prompt user for project directory
-get_project_dir() {
+get_project_info() {
     read -p "Enter the project directory: " project_dir
-    echo "$project_dir" > "$config_file"
+    read -p "Does the project directory already contain a virtual environment? (y/n): " has_venv
+    eecho "$project_dir|$has_venv" > "$config_file"
 }
 
-# Check if the project directory is saved, otherwise ask the user
+# Check if the project information is saved, otherwise ask the user
 if [ -f "$config_file" ]; then
-    project_dir=$(cat "$config_file")
+    IFS='|' read -r project_dir has_venv < "$config_file"
 else
-    get_project_dir
+    get_project_info
 fi
 
 
@@ -55,9 +53,14 @@ git checkout api-fixes
 git fetch origin api-fixes
 git reset --hard origin/api-fixes
 
-# Create and activate virtual environment
-python3 -m venv venv
-source $project_dir/venv/bin/activate
+# Activate virtual environment if it exists
+if [ "$has_venv" = "y" ]; then
+    source "$project_dir/venv/bin/activate"
+else
+    # Create and activate virtual environment if it doesn't exist
+    python3 -m venv "$project_dir/venv"
+    source "$project_dir/venv/bin/activate"
+fi
 
 # Install Python dependencies
 pip install -r requirements.txt
