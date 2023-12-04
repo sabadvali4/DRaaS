@@ -1,18 +1,27 @@
 # File to store project directory and venv flag
-config_file="/opt/draas_config.ini"
+config_file="config/draas_config.ini"
 
 # Function to prompt user for project directory
 get_project_info() {
-    read -p "Enter the project directory: " project_dir
-    read -p "Does the project directory already contain a virtual environment? (y/n): " has_venv
-    echo "$project_dir|$has_venv" > "$config_file"
+    project_dir=$(pwd)
+    if [[ "$(python3 -V)" =~ "Python 3" ]]; then
+		echo "Python 3 is installed"
+    else
+	echo "Please install python 3"
+	exit 1 
+    fi
+    if [ ! -d $project_dir/venv ]; then
+    	python3 -m venv "$project_dir/venv"
+    	source "$project_dir/venv/bin/activate"
+    else
+    	source "$project_dir/venv/bin/activate"
+    fi 
+    echo "project_dir=$project_dir" > "$config_file"
 }
 
 # Check if the project information is saved, otherwise ask the user
 if [ -f "$config_file" ]; then
-    IFS='|' read -r project_dir has_venv < "$config_file"
-    echo $project_dir
-    echo $has_venvS
+    source $config_file
 else
     get_project_info
 fi
@@ -37,6 +46,7 @@ backup_dir="/opt/backup"
 # Check if the backup directory exists, if not, create it
 if [ ! -d "$backup_dir" ]; then
     sudo mkdir -p "$backup_dir"
+    sudo chmod a+rw "$backup_dir" -R 
 fi
 backup_file="$backup_dir/parameters_backup.ini"
 
