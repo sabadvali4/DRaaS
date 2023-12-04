@@ -9,7 +9,7 @@ settings.init()
 
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
-switch_info_url = settings.url + "/getSwitchLogin"
+switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 update_status_url= settings.url + "/postHealthMonitoring"

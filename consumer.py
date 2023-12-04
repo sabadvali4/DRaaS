@@ -15,7 +15,7 @@ redis_server = redis.Redis()
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
 current_task_que = "current_task_que"
-switch_info_url = "https://bynetprod.service-now.com/api/bdml/switch/getSwitchLogin"
+switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 
@@ -103,7 +103,7 @@ def main():
                 #print("Maximum wait time reached. Exiting.")
                 #return  # Exit the program after waiting for the maximum time
             print("Queue is empty. Waiting...")
-            sleep(10)  # Wait for 15 seconds and check the queue again
+            sleep(10)  # Wait for 10 seconds and check the queue again
 
         print(f'Queue length: {q_len}')
         requests_list = redis_server.lrange(queue_name, 0, q_len)

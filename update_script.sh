@@ -47,11 +47,11 @@ sudo cp "$ini_file" "$backup_file"
 mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
 
 # Ensure you are on the main branch
-git checkout api-fixes
+git checkout main
 
 # Discard local changes and reset to the remote main branch
-git fetch origin api-fixes
-git reset --hard origin/api-fixes
+git fetch origin main
+git reset --hard origin/main
 
 # Activate virtual environment if it exists
 if [ "$has_venv" = "y" ]; then
