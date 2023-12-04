@@ -21,7 +21,6 @@
 Core protocol implementation
 """
 
-from __future__ import print_function
 import os
 import socket
 import sys
@@ -35,7 +34,7 @@ from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
 
 import paramiko
 from paramiko import util
-from paramiko.auth_handler import AuthHandler
+from paramiko.auth_handler import AuthHandler, AuthOnlyHandler
 from paramiko.ssh_gss import GSSAuth
 from paramiko.channel import Channel
 from paramiko.common import (
@@ -65,6 +64,8 @@ from paramiko.common import (
     MSG_GLOBAL_REQUEST,
     MSG_REQUEST_SUCCESS,
     MSG_REQUEST_FAILURE,
+    cMSG_SERVICE_REQUEST,
+    MSG_SERVICE_ACCEPT,
     MSG_CHANNEL_OPEN_SUCCESS,
     MSG_CHANNEL_OPEN_FAILURE,
     MSG_CHANNEL_OPEN,
@@ -86,6 +87,7 @@ from paramiko.common import (
     MSG_NAMES,
     MSG_EXT_INFO,
     cMSG_EXT_INFO,
+    byte_ord,
 )
 from paramiko.compress import ZlibCompressor, ZlibDecompressor
 from paramiko.dsskey import DSSKey
@@ -100,7 +102,6 @@ from paramiko.kex_gss import KexGSSGex, KexGSSGroup1, KexGSSGroup14
 from paramiko.message import Message
 from paramiko.packet import Packetizer, NeedRekeyException
 from paramiko.primes import ModulusPack
-from paramiko.py3compat import string_types, long, byte_ord, b, input, PY2
 from paramiko.rsakey import RSAKey
 from paramiko.ecdsakey import ECDSAKey
 from paramiko.server import ServerInterface
@@ -112,7 +113,11 @@ from paramiko.ssh_exception import (
     IncompatiblePeer,
     ProxyCommandFailure,
 )
-from paramiko.util import retry_on_signal, ClosingContextManager, clamp_value
+from paramiko.util import (
+    ClosingContextManager,
+    clamp_value,
+    b,
+)
 
 
 # for thread cleanup
@@ -339,8 +344,8 @@ class Transport(threading.Thread, ClosingContextManager):
         If the object is not actually a socket, it must have the following
         methods:
 
-        - ``send(str)``: Writes from 1 to ``len(str)`` bytes, and returns an
-          int representing the number of bytes written.  Returns
+        - ``send(bytes)``: Writes from 1 to ``len(bytes)`` bytes, and returns
+          an int representing the number of bytes written.  Returns
           0 or raises ``EOFError`` if the stream has been closed.
         - ``recv(int)``: Reads from 1 to ``int`` bytes and returns them as a
           string.  Returns 0 or raises ``EOFError`` if the stream has been
@@ -410,7 +415,9 @@ class Transport(threading.Thread, ClosingContextManager):
         self.hostname = None
         self.server_extensions = {}
 
-        if isinstance(sock, string_types):
+        # TODO: these two overrides on sock's type should go away sometime, too
+        # many ways to do it!
+        if isinstance(sock, str):
             # convert "host:port" into (host, port)
             hl = sock.split(":", 1)
             self.hostname = hl[0]
@@ -432,7 +439,7 @@ class Transport(threading.Thread, ClosingContextManager):
                     # addr = sockaddr
                     sock = socket.socket(af, socket.SOCK_STREAM)
                     try:
-                        retry_on_signal(lambda: sock.connect((hostname, port)))
+                        sock.connect((hostname, port))
                     except socket.error as e:
                         reason = str(e)
                     else:
@@ -513,6 +520,8 @@ class Transport(threading.Thread, ClosingContextManager):
         self.handshake_timeout = 15
         # how long (seconds) to wait for the auth response.
         self.auth_timeout = 30
+        # how long (seconds) to wait for opening a channel
+        self.channel_timeout = 60 * 60
         self.disabled_algorithms = disabled_algorithms or {}
         self.server_sig_algs = server_sig_algs
 
@@ -523,6 +532,20 @@ class Transport(threading.Thread, ClosingContextManager):
         self.server_accepts = []
         self.server_accept_cv = threading.Condition(self.lock)
         self.subsystem_table = {}
+
+        # Handler table, now set at init time for easier per-instance
+        # manipulation and subclass twiddling.
+        self._handler_table = {
+            MSG_EXT_INFO: self._parse_ext_info,
+            MSG_NEWKEYS: self._parse_newkeys,
+            MSG_GLOBAL_REQUEST: self._parse_global_request,
+            MSG_REQUEST_SUCCESS: self._parse_request_success,
+            MSG_REQUEST_FAILURE: self._parse_request_failure,
+            MSG_CHANNEL_OPEN_SUCCESS: self._parse_channel_open_success,
+            MSG_CHANNEL_OPEN_FAILURE: self._parse_channel_open_failure,
+            MSG_CHANNEL_OPEN: self._parse_channel_open,
+            MSG_KEXINIT: self._negotiate_keys,
+        }
 
     def _filter_algorithm(self, type_):
         default = getattr(self, "_preferred_{}".format(type_))
@@ -568,7 +591,7 @@ class Transport(threading.Thread, ClosingContextManager):
         """
         Returns a string representation of this object, for debugging.
         """
-        id_ = hex(long(id(self)) & xffffffff)
+        id_ = hex(id(self) & xffffffff)
         out = "<paramiko.Transport at {}".format(id_)
         if not self.active:
             out += " (unconnected)"
@@ -1005,14 +1028,14 @@ class Transport(threading.Thread, ClosingContextManager):
 
         :raises:
             `.SSHException` -- if the request is rejected, the session ends
-            prematurely or there is a timeout openning a channel
+            prematurely or there is a timeout opening a channel
 
         .. versionchanged:: 1.15
             Added the ``window_size`` and ``max_packet_size`` arguments.
         """
         if not self.active:
             raise SSHException("SSH session not active")
-        timeout = 3600 if timeout is None else timeout
+        timeout = self.channel_timeout if timeout is None else timeout
         self.lock.acquire()
         try:
             window_size = self._sanitize_window_size(window_size)
@@ -1412,7 +1435,7 @@ class Transport(threading.Thread, ClosingContextManager):
         finally:
             self.lock.release()
 
-    def set_subsystem_handler(self, name, handler, *larg, **kwarg):
+    def set_subsystem_handler(self, name, handler, *args, **kwargs):
         """
         Set the handler class for a subsystem in server mode.  If a request
         for this subsystem is made on an open ssh channel later, this handler
@@ -1428,7 +1451,7 @@ class Transport(threading.Thread, ClosingContextManager):
         """
         try:
             self.lock.acquire()
-            self.subsystem_table[name] = (handler, larg, kwarg)
+            self.subsystem_table[name] = (handler, args, kwargs)
         finally:
             self.lock.release()
 
@@ -1641,7 +1664,7 @@ class Transport(threading.Thread, ClosingContextManager):
         dumb wrapper around PAM.
 
         This method will block until the authentication succeeds or fails,
-        peroidically calling the handler asynchronously to get answers to
+        periodically calling the handler asynchronously to get answers to
         authentication questions.  The handler may be called more than once
         if the server continues to ask questions.
 
@@ -1689,7 +1712,7 @@ class Transport(threading.Thread, ClosingContextManager):
 
     def auth_interactive_dumb(self, username, handler=None, submethods=""):
         """
-        Autenticate to the server interactively but dumber.
+        Authenticate to the server interactively but dumber.
         Just print the prompt and / or instructions to stdout and send back
         the response. This is good for situations where partial auth is
         achieved by key and then the user has to enter a 2fac token.
@@ -1844,28 +1867,24 @@ class Transport(threading.Thread, ClosingContextManager):
     def stop_thread(self):
         self.active = False
         self.packetizer.close()
-        if PY2:
-            # Original join logic; #520 doesn't appear commonly present under
-            # Python 2.
-            while self.is_alive() and self is not threading.current_thread():
-                self.join(10)
-        else:
-            # Keep trying to join() our main thread, quickly, until:
-            # * We join()ed successfully (self.is_alive() == False)
-            # * Or it looks like we've hit issue #520 (socket.recv hitting some
-            # race condition preventing it from timing out correctly), wherein
-            # our socket and packetizer are both closed (but where we'd
-            # otherwise be sitting forever on that recv()).
-            while (
-                self.is_alive()
-                and self is not threading.current_thread()
-                and not self.sock._closed
-                and not self.packetizer.closed
-            ):
-                self.join(0.1)
+        # Keep trying to join() our main thread, quickly, until:
+        # * We join()ed successfully (self.is_alive() == False)
+        # * Or it looks like we've hit issue #520 (socket.recv hitting some
+        # race condition preventing it from timing out correctly), wherein
+        # our socket and packetizer are both closed (but where we'd
+        # otherwise be sitting forever on that recv()).
+        while (
+            self.is_alive()
+            and self is not threading.current_thread()
+            and not self.sock._closed
+            and not self.packetizer.closed
+        ):
+            self.join(0.1)
 
     # internals...
 
+    # TODO 4.0: make a public alias for this because multiple other classes
+    # already explicitly rely on it...or just rewrite logging :D
     def _log(self, level, msg, *args):
         if issubclass(type(msg), list):
             for m in msg:
@@ -1881,9 +1900,9 @@ class Transport(threading.Thread, ClosingContextManager):
         """you are holding the lock"""
         chanid = self._channel_counter
         while self._channels.get(chanid) is not None:
-            self._channel_counter = (self._channel_counter + 1) & 0xffffff
+            self._channel_counter = (self._channel_counter + 1) & 0xFFFFFF
             chanid = self._channel_counter
-        self._channel_counter = (self._channel_counter + 1) & 0xffffff
+        self._channel_counter = (self._channel_counter + 1) & 0xFFFFFF
         return chanid
 
     def _unlink_channel(self, chanid):
@@ -2061,7 +2080,7 @@ class Transport(threading.Thread, ClosingContextManager):
             reply.add_string("")
             reply.add_string("en")
         # NOTE: Post-open channel messages do not need checking; the above will
-        # reject attemps to open channels, meaning that even if a malicious
+        # reject attempts to open channels, meaning that even if a malicious
         # user tries to send a MSG_CHANNEL_REQUEST, it will simply fall under
         # the logic that handles unknown channel IDs (as the channel list will
         # be empty.)
@@ -2079,7 +2098,7 @@ class Transport(threading.Thread, ClosingContextManager):
 
         # active=True occurs before the thread is launched, to avoid a race
         _active_threads.append(self)
-        tid = hex(long(id(self)) & xffffffff)
+        tid = hex(id(self) & xffffffff)
         if self.server_mode:
             self._log(DEBUG, "starting thread (server mode): {}".format(tid))
         else:
@@ -2126,6 +2145,8 @@ class Transport(threading.Thread, ClosingContextManager):
                                 )
                             )  # noqa
                         self._expected_packet = tuple()
+                        # These message IDs indicate key exchange & will differ
+                        # depending on exact exchange algorithm
                         if (ptype >= 30) and (ptype <= 41):
                             self.kex_engine.parse_next(ptype, m)
                             continue
@@ -2135,7 +2156,7 @@ class Transport(threading.Thread, ClosingContextManager):
                         if error_msg:
                             self._send_message(error_msg)
                         else:
-                            self._handler_table[ptype](self, m)
+                            self._handler_table[ptype](m)
                     elif ptype in self._channel_handler_table:
                         chanid = m.get_int()
                         chan = self._channels.get(chanid)
@@ -2161,7 +2182,7 @@ class Transport(threading.Thread, ClosingContextManager):
                         and ptype in self.auth_handler._handler_table
                     ):
                         handler = self.auth_handler._handler_table[ptype]
-                        handler(self.auth_handler, m)
+                        handler(m)
                         if len(self._expected_packet) > 0:
                             continue
                     else:
@@ -2598,7 +2619,7 @@ class Transport(threading.Thread, ClosingContextManager):
 
     def _activate_inbound(self):
         """switch on newly negotiated encryption parameters for
-         inbound traffic"""
+        inbound traffic"""
         block_size = self._cipher_info[self.remote_cipher]["block-size"]
         if self.server_mode:
             IV_in = self._compute_key("A", block_size)
@@ -2634,7 +2655,7 @@ class Transport(threading.Thread, ClosingContextManager):
 
     def _activate_outbound(self):
         """switch on newly negotiated encryption parameters for
-         outbound traffic"""
+        outbound traffic"""
         m = Message()
         m.add_byte(cMSG_NEWKEYS)
         self._send_message(m)
@@ -2982,18 +3003,6 @@ class Transport(threading.Thread, ClosingContextManager):
         finally:
             self.lock.release()
 
-    _handler_table = {
-        MSG_EXT_INFO: _parse_ext_info,
-        MSG_NEWKEYS: _parse_newkeys,
-        MSG_GLOBAL_REQUEST: _parse_global_request,
-        MSG_REQUEST_SUCCESS: _parse_request_success,
-        MSG_REQUEST_FAILURE: _parse_request_failure,
-        MSG_CHANNEL_OPEN_SUCCESS: _parse_channel_open_success,
-        MSG_CHANNEL_OPEN_FAILURE: _parse_channel_open_failure,
-        MSG_CHANNEL_OPEN: _parse_channel_open,
-        MSG_KEXINIT: _negotiate_keys,
-    }
-
     _channel_handler_table = {
         MSG_CHANNEL_SUCCESS: Channel._request_success,
         MSG_CHANNEL_FAILURE: Channel._request_failed,
@@ -3006,10 +3015,10 @@ class Transport(threading.Thread, ClosingContextManager):
     }
 
 
-# TODO 3.0: drop this, we barely use it ourselves, it badly replicates the
+# TODO 4.0: drop this, we barely use it ourselves, it badly replicates the
 # Transport-internal algorithm management, AND does so in a way which doesn't
 # honor newer things like disabled_algorithms!
-class SecurityOptions(object):
+class SecurityOptions:
     """
     Simple object containing the security preferences of an ssh transport.
     These are tuples of acceptable ciphers, digests, key types, and key
@@ -3090,7 +3099,7 @@ class SecurityOptions(object):
         self._set("_preferred_compression", "_compression_info", x)
 
 
-class ChannelMap(object):
+class ChannelMap:
     def __init__(self):
         # (id -> Channel)
         self._map = weakref.WeakValueDictionary()
@@ -3133,3 +3142,161 @@ class ChannelMap(object):
             return len(self._map)
         finally:
             self._lock.release()
+
+
+class ServiceRequestingTransport(Transport):
+    """
+    Transport, but also handling service requests, like it oughtta!
+
+    .. versionadded:: 3.2
+    """
+
+    # NOTE: this purposefully duplicates some of the parent class in order to
+    # modernize, refactor, etc. The intent is that eventually we will collapse
+    # this one onto the parent in a backwards incompatible release.
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._service_userauth_accepted = False
+        self._handler_table[MSG_SERVICE_ACCEPT] = self._parse_service_accept
+
+    def _parse_service_accept(self, m):
+        service = m.get_text()
+        # Short-circuit for any service name not ssh-userauth.
+        # NOTE: it's technically possible for 'service name' in
+        # SERVICE_REQUEST/ACCEPT messages to be "ssh-connection" --
+        # but I don't see evidence of Paramiko ever initiating or expecting to
+        # receive one of these. We /do/ see the 'service name' field in
+        # MSG_USERAUTH_REQUEST/ACCEPT/FAILURE set to this string, but that is a
+        # different set of handlers, so...!
+        if service != "ssh-userauth":
+            # TODO 4.0: consider erroring here (with an ability to opt out?)
+            # instead as it probably means something went Very Wrong.
+            self._log(
+                DEBUG, 'Service request "{}" accepted (?)'.format(service)
+            )
+            return
+        # Record that we saw a service-userauth acceptance, meaning we are free
+        # to submit auth requests.
+        self._service_userauth_accepted = True
+        self._log(DEBUG, "MSG_SERVICE_ACCEPT received; auth may begin")
+
+    def ensure_session(self):
+        # Make sure we're not trying to auth on a not-yet-open or
+        # already-closed transport session; that's our responsibility, not that
+        # of AuthHandler.
+        if (not self.active) or (not self.initial_kex_done):
+            # TODO: better error message? this can happen in many places, eg
+            # user error (authing before connecting) or developer error (some
+            # improperly handled pre/mid auth shutdown didn't become fatal
+            # enough). The latter is much more common & should ideally be fixed
+            # by terminating things harder?
+            raise SSHException("No existing session")
+        # Also make sure we've actually been told we are allowed to auth.
+        if self._service_userauth_accepted:
+            return
+        # Or request to do so, otherwise.
+        m = Message()
+        m.add_byte(cMSG_SERVICE_REQUEST)
+        m.add_string("ssh-userauth")
+        self._log(DEBUG, "Sending MSG_SERVICE_REQUEST: ssh-userauth")
+        self._send_message(m)
+        # Now we wait to hear back; the user is expecting a blocking-style auth
+        # request so there's no point giving control back anywhere.
+        while not self._service_userauth_accepted:
+            # TODO: feels like we're missing an AuthHandler Event like
+            # 'self.auth_event' which is set when AuthHandler shuts down in
+            # ways good AND bad. Transport only seems to have completion_event
+            # which is unclear re: intent, eg it's set by newkeys which always
+            # happens on connection, so it'll always be set by the time we get
+            # here.
+            # NOTE: this copies the timing of event.wait() in
+            # AuthHandler.wait_for_response, re: 1/10 of a second. Could
+            # presumably be smaller, but seems unlikely this period is going to
+            # be "too long" for any code doing ssh networking...
+            time.sleep(0.1)
+        self.auth_handler = self.get_auth_handler()
+
+    def get_auth_handler(self):
+        # NOTE: using new sibling subclass instead of classic AuthHandler
+        return AuthOnlyHandler(self)
+
+    def auth_none(self, username):
+        # TODO 4.0: merge to parent, preserving (most of) docstring
+        self.ensure_session()
+        return self.auth_handler.auth_none(username)
+
+    def auth_password(self, username, password, fallback=True):
+        # TODO 4.0: merge to parent, preserving (most of) docstring
+        self.ensure_session()
+        try:
+            return self.auth_handler.auth_password(username, password)
+        except BadAuthenticationType as e:
+            # if password auth isn't allowed, but keyboard-interactive *is*,
+            # try to fudge it
+            if not fallback or ("keyboard-interactive" not in e.allowed_types):
+                raise
+            try:
+
+                def handler(title, instructions, fields):
+                    if len(fields) > 1:
+                        raise SSHException("Fallback authentication failed.")
+                    if len(fields) == 0:
+                        # for some reason, at least on os x, a 2nd request will
+                        # be made with zero fields requested.  maybe it's just
+                        # to try to fake out automated scripting of the exact
+                        # type we're doing here.  *shrug* :)
+                        return []
+                    return [password]
+
+                return self.auth_interactive(username, handler)
+            except SSHException:
+                # attempt to fudge failed; just raise the original exception
+                raise e
+
+    def auth_publickey(self, username, key):
+        # TODO 4.0: merge to parent, preserving (most of) docstring
+        self.ensure_session()
+        return self.auth_handler.auth_publickey(username, key)
+
+    def auth_interactive(self, username, handler, submethods=""):
+        # TODO 4.0: merge to parent, preserving (most of) docstring
+        self.ensure_session()
+        return self.auth_handler.auth_interactive(
+            username, handler, submethods
+        )
+
+    def auth_interactive_dumb(self, username, handler=None, submethods=""):
+        # TODO 4.0: merge to parent, preserving (most of) docstring
+        # NOTE: legacy impl omitted equiv of ensure_session since it just wraps
+        # another call to an auth method. however we reinstate it for
+        # consistency reasons.
+        self.ensure_session()
+        if not handler:
+
+            def handler(title, instructions, prompt_list):
+                answers = []
+                if title:
+                    print(title.strip())
+                if instructions:
+                    print(instructions.strip())
+                for prompt, show_input in prompt_list:
+                    print(prompt.strip(), end=" ")
+                    answers.append(input())
+                return answers
+
+        return self.auth_interactive(username, handler, submethods)
+
+    def auth_gssapi_with_mic(self, username, gss_host, gss_deleg_creds):
+        # TODO 4.0: merge to parent, preserving (most of) docstring
+        self.ensure_session()
+        self.auth_handler = self.get_auth_handler()
+        return self.auth_handler.auth_gssapi_with_mic(
+            username, gss_host, gss_deleg_creds
+        )
+
+    def auth_gssapi_keyex(self, username):
+        # TODO 4.0: merge to parent, preserving (most of) docstring
+        self.ensure_session()
+        self.auth_handler = self.get_auth_handler()
+        return self.auth_handler.auth_gssapi_keyex(username)
