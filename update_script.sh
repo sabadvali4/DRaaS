@@ -1,3 +1,4 @@
+#!/bin/bash
 # File to store project directory and venv flag
 config_file="config/draas_config.ini"
 
@@ -8,7 +9,7 @@ log_file="/var/log/update_script.log"
 get_project_info() 
 {
     project_dir=$(pwd)
-    if [[ "$(python3 -V)" =~ "Python 3" ]]; then
+    if python3 -V 2>&1| grep -q "Python 3"; then
 		echo "Python 3 is installed" >> "$log_file"
     else
 	    echo "Please install python 3" >> "$log_file"
@@ -100,17 +101,17 @@ update_service_file() {
     # Check if the service file exists
     if [ ! -f "$service_file" ]; then
         echo "$2 service file not found in the system. Creating..." >> "$log_file"
-        sed -i "s/User=.*/$user_param/" "$project_dir/$2.service"
-        sed -i "s/WorkingDirectory=.*/$wd_param/" "$project_dir/$2.service"
-        sed -i "s|ExecStart=.*|$exec_param|" "$project_dir/$2.service"
+        sed -i "s#User=.*#$user_param#" "$project_dir/$2.service"
+        sed -i "s#WorkingDirectory=.*#$wd_param#" "$project_dir/$2.service"
+        sed -i "s#ExecStart=.*#$exec_param#" "$project_dir/$2.service"
         sudo cp "$project_dir/$2.service" "$service_file"
     else
         # Check if parameters match, update if needed
         if ! grep -q "^$user_param" "$service_file" || ! grep -q "^$wd_param" "$service_file" || ! grep -q "^$exec_param" "$service_file"; then
             echo "$2 service file parameters do not match. Updating..." >> "$log_file"
-            sudo sed -i "s/User=.*/$user_param/" "$service_file"
-            sudo sed -i "s/WorkingDirectory=.*/$wd_param/" "$service_file"
-            sudo sed -i "s|ExecStart=.*|$exec_param|" "$service_file"
+            sudo sed -i "s#User=.*#$user_param#" "$service_file"
+            sudo sed -i "s#WorkingDirectory=.*#$wd_param#" "$service_file"
+            sudo sed -i "s#ExecStart=.*#$exec_param#" "$service_file"
         fi
     fi
 }
@@ -138,9 +139,6 @@ sudo systemctl restart consumer.service >> "$log_file" 2>&1
 # Check the status of the services
 producer_status=$(sudo systemctl is-active producer.service)
 consumer_status=$(sudo systemctl is-active consumer.service)
-
-# Deactivate virtual environment
-deactivate
 
 # Print the status message
 if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
