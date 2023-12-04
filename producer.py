@@ -1,5 +1,5 @@
 import redis, requests
-import re, json
+import re, json, math
 import time; from time import * 
 import requests; import re; import json; import logging
 from datetime import datetime
@@ -9,7 +9,7 @@ settings.init()
 
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
-switch_info_url = settings.url + "/getSwitchLogin"
+switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 update_status_url= settings.url + "/postHealthMonitoring"
@@ -40,7 +40,7 @@ logger.setLevel(logging.DEBUG)
 
 def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
-    #print (commands['result'])
+    print (commands['result'])
     return commands['result']
 
 
@@ -60,14 +60,14 @@ def send_status_update(ID, STATUS, OUTPUT):
         logger.error('Error in send_status_update: %s', str(e))
 
 
-def send_health_monitoring_update(mid_name, items_in_queue, items_in_process, timestamp):
+def send_health_monitoring_update(mid_name, items_in_queue, items_in_process, Timestamp):
     try:
         payload = json.dumps(
             {
                 "mid_name": mid_name,
                 "items_in_queue": items_in_queue,
                 "items_in_process": items_in_process,
-                "timestamp": timestamp
+                "timestamp": Timestamp
             })
         print(payload)
         answer = requests.post(update_status_url, data=payload,
@@ -114,6 +114,6 @@ if __name__ == "__main__":
         tasks_len = len(get_requests())  # Use a different variable name
         redis_queue_push(get_requests())
         # Format timestamp as HH:MM:SS
-        timestamp = datetime.now().strftime('%H:%M:%S')
-        send_health_monitoring_update(settings.mid_server, redis_server.llen(queue_name), (tasks_len - redis_server.llen(queue_name)), timestamp)
+        Timestamp = datetime.now().strftime('%H:%M:%S')
+        send_health_monitoring_update(settings.mid_server, redis_server.llen(queue_name), abs(tasks_len), Timestamp)
         sleep(10)

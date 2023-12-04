@@ -1,6 +1,5 @@
 *.json
 *.ios
-*.ini
 *.conf
 *.env
 *.pyc

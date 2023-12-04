@@ -1,18 +1,13 @@
-# json
-threading
-unittest
-socket
-redis
-ntc-templates
-netmiko
-flask
 ntc_templates
-subprocess
+netmiko
+configparser
+confparser
+Flask
+redis
 flasgger
+requests
+netmiko
+python-dotenv
+paramiko
+redis
 
-requests == 2.25.1
-python-dotenv == 0.20.0
-configparser == 5.2.0
-datetime == 4.7
-paramiko == 2.12.0
-confparser == 0.1.7
