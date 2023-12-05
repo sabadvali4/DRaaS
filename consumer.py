@@ -22,7 +22,7 @@ update_req_url = settings.url + "/SetCommandStatus"
 # this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)
 
-# Check if the systemd.journal module is available
+# Check if the systemd.journal module is available..
 try:
     from systemd.journal import JournaldLogHandler
 
