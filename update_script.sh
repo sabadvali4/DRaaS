@@ -136,10 +136,10 @@ check_systemd_changes() {
     local consumer_py_diff=$(diff "$project_dir/consumer.py" "$project_dir/venv/bin/consumer.py")
 
     if [ -z "$producer_diff" ] && [ -z "$consumer_diff" ] && [ -z "$producer_py_diff" ] && [ -z "$consumer_py_diff" ]; then
-        echo "No changes in systemd service files, producer.py, or consumer.py. Skipping systemd reload."
+        echo "No changes in systemd service files, producer.py, or consumer.py. Skipping systemd reload." >> $log_file
         return 1  # Indicate no changes
     else
-        echo -e "Changes detected in the following files:\n$( [ -n "$producer_diff" ] && echo "- producer.service" )\n$( [ -n "$consumer_diff" ] && echo "- consumer.service" )\n$( [ -n "$producer_py_diff" ] && echo "- producer.py" )\n$( [ -n "$consumer_py_diff" ] && echo "- consumer.py" )" >> "$log_file"
+        echo -e "Changes detected in the following files:\n$( [ -n "$producer_diff" ] && echo "- producer.service" )\n$( [ -n "$consumer_diff" ] && echo "- consumer.service" )\n$( [ -n "$producer_py_diff" ] && echo "- producer.py" )\n$( [ -n "$consumer_py_diff" ] && echo "- consumer.py" )" >> $log_file
         return 0  # Indicate changes
     fi
 }
@@ -167,7 +167,7 @@ if check_systemd_changes; then
     sudo systemctl restart producer.service > "$log_file" 2>&1
     sudo systemctl restart consumer.service >> "$log_file" 2>&1
 else
-    echo "No need to reload systemd. Skipping systemd reload."
+    echo "No need to reload systemd. Skipping systemd reload." >> $log_file
 fi
 
 # Restart your services and log the output
