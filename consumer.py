@@ -10,7 +10,7 @@ import settings
 from settings import *
 settings.init()
 
-# Create a Redis server connection
+# Create a Redis server connections
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
@@ -19,7 +19,7 @@ switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 
-# get an instance of the logger object this module will use
+# this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)
 
 # Check if the systemd.journal module is available
