@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # File to store project directory and venv flag
 config_file="config/draas_config.ini"
 
@@ -73,9 +74,15 @@ mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
 # Ensure you are on the main branch
 git checkout main
 
-# Discard local changes and reset to the remote main branch
-git fetch origin main
-git reset --hard origin/main
+# Check if the local branch is already up-to-date with the remote branch
+if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
+    echo "Local branch is already up-to-date. No need to pull changes." >> $log_file
+    exit 0
+else
+    # Fetch and reset to the remote main branch
+    git fetch origin main
+    git reset --hard origin/main
+fi
 
 # Activate virtual environment if it exists
 if [ $project_dir/venv ]; then
@@ -92,19 +99,22 @@ pip install -r requirements.txt
 sudo cp -a "$config_dir" /opt/
 
 # Function to update service file with correct parameters
-update_service_file() {
+update_service_file() 
+{
     local service_file="$1"
-    local user_param="User=$(whoami)"
+    local user_param="User=$user"
     local wd_param="WorkingDirectory=$project_dir"
     local exec_param="ExecStart=$project_dir/venv/bin/python $project_dir/$2.py"
+
+    local local_service_file="$project_dir/$2.service"
 
     # Check if the service file exists
     if [ ! -f "$service_file" ]; then
         echo "$2 service file not found in the system. Creating..." >> "$log_file"
-        sed -i "s#User=.*#$user_param#" "$project_dir/$2.service"
-        sed -i "s#WorkingDirectory=.*#$wd_param#" "$project_dir/$2.service"
-        sed -i "s#ExecStart=.*#$exec_param#" "$project_dir/$2.service"
-        sudo cp "$project_dir/$2.service" "$service_file"
+        sed -i "s#User=.*#$user_param#" "$local_service_file"
+        sed -i "s#WorkingDirectory=.*#$wd_param#" "$local_service_file"
+        sed -i "s#ExecStart=.*#$exec_param#" "$local_service_file"
+        sudo cp "$local_service_file" "$service_file"
     else
         # Check if parameters match, update if needed
         if ! grep -q "^$user_param" "$service_file" || ! grep -q "^$wd_param" "$service_file" || ! grep -q "^$exec_param" "$service_file"; then
@@ -112,7 +122,23 @@ update_service_file() {
             sudo sed -i "s#User=.*#$user_param#" "$service_file"
             sudo sed -i "s#WorkingDirectory=.*#$wd_param#" "$service_file"
             sudo sed -i "s#ExecStart=.*#$exec_param#" "$service_file"
+            # Copy the updated service file to the project directory
+            cp "$service_file" "$local_service_file"
         fi
+    fi
+}
+
+
+# Function to check if there are changes in systemd service files
+check_systemd_changes() {
+    local producer_diff=$(diff "$project_dir/producer.service" "$producer_service")
+    local consumer_diff=$(diff "$project_dir/consumer.service" "$consumer_service")
+
+    if [ -z "$producer_diff" ] && [ -z "$consumer_diff" ]; then
+        echo "No changes in systemd service files. Skipping systemd reload."
+        return 1  # Indicate no changes
+    else
+        return 0  # Indicate changes
     fi
 }
 
@@ -129,8 +155,17 @@ fi
 update_service_file "$producer_service" "producer"
 update_service_file "$consumer_service" "consumer"
 
-# Reload systemd to pick up changes
-sudo systemctl daemon-reload
+# Check if there are changes in systemd service files
+if check_systemd_changes; then
+    # Reload systemd to pick up changes
+    sudo systemctl daemon-reload
+
+    # Restart your services and log the output
+    sudo systemctl restart producer.service > "$log_file" 2>&1
+    sudo systemctl restart consumer.service >> "$log_file" 2>&1
+else
+    echo "No need to reload systemd. Skipping systemd reload."
+fi
 
 # Restart your services and log the output
 sudo systemctl restart producer.service > "$log_file" 2>&1
@@ -147,4 +182,3 @@ if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
 else
     echo "Something went wrong. Check the status of your services. See the log file for details: $log_file"
 fi
-
