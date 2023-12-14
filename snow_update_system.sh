@@ -1,15 +1,17 @@
 #!/bin/bash
 
 DATE=$(date "+%Y%m%d%H%M")
+
 # Log file path
 log_file="/var/log/script.log"
+
 # File to store project directory and venv flag
 config_file="config/draas_config.ini"
+
 # the update zip sended by ServiceNow
 update_file="/opt/servicenow/mid/agent/export/update.zip"
 
 echo "Started sync at ${DATE}"  >> "$log_file"
-
 if [ -z "$update_file" ]; then
     echo "Error: No update file (*.zip) found in the project directory. Please check your folder." >> "$log_file"
     exit 1
@@ -104,7 +106,7 @@ for file in "$temp_extracted_dir"*; do
     filename=$(basename "$file")
     
     # Exclude config and ini files
-    if [[ "$filename" != *.config && "$filename" != *.ini ]]; then
+    if [[ "$filename" != "config" && "$filename" != *.ini ]]; then
         # Update the file in the destination folder
         cp "$file" "$project_die/$filename"
         echo "copied the new file: "$file"." >> "$log_file"
