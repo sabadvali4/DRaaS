@@ -34,7 +34,7 @@ if __name__ == "__main__":
     except Exception as error:
         print(error)
 
-    show_interface_data = {'name':'eth0'}
+    #show_interface_data = {'name':'eth0'}
 
     show_interfaces_result = gaia_show_interfaces(gaia_ip ,sid)
 

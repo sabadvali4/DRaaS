@@ -2,7 +2,9 @@ import time, sys, threading; from unittest import result; import requests, json,
 from datetime import datetime; import paramiko, configparser, confparser; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
-import glv; from glv import added_vlan  # Import the added_vlan list
+#import glv; from glv import added_vlan  # Import the added_vlan list
+global added_vlan
+added_vlan=[]
 load_dotenv()
 
 config = configparser.ConfigParser()
@@ -38,7 +40,6 @@ class SSHClient:
             return output
         else:
             raise ValueError("SSH connection is not established.")
-
 #SSH connection function
 class ssh_new:
     shell = None
@@ -101,53 +102,6 @@ def is_json(myjson):
     return False
   return True
 
-def get_ips_from_snow():
-    """
-    This function gets list of switchs ips from snow API
-    """
-    commandsUrl = "https://bynetprod.service-now.com/api/bdml/switch" + 'SwitchIPs'
-
-    response = requests.get(commandsUrl, headers={'Content-Type': 'application/json'}, auth=(switch_user, switch_password))
-
-    msg = "status is: " + str(response.status_code)
-    
-    response_content = str(response.content)[2:-1]
-    print('my response is: ' + response_content)
-    is_json_response = is_json(response_content)
-
-    if is_json_response:
-        print(msg)
-        print('json response: ')
-        jsonResponse = json.loads(response_content)
-        print(jsonResponse)
-        print("##########")
-        result = jsonResponse.get("result", [])
-        for item in result:
-            print(item['ip'])
-            print(item['username'])
-            print(item['password'])
-    else:
-        return 'error bad payload'
-    
-    if response.status_code in [200, 201]:
-        return 'Success'
-    else:
-        return 'bad response from SNOW code:' + str(response.status_code) + ' message: ' + str(is_json_response)
-
-def set_status_to_sent(sysid):
-    """
-    This function sets status to sent
-    """
-    commandsUrl = "https://bynetprod.service-now.com/api/bdml/switch" + "/SetCommandStatus"
-    if (sysid != None):
-        myparams = {"sysid": str(sysid)}
-    print("getting commands from snow: sysid:" + str(sysid))
-
-    response = requests.get(commandsUrl, headers={'Content-Type': 'application/json'}, params=myparams, auth=(switch_user, switch_password))
-    msg = "status is: " + str(response.status_code)
-    print(msg)
-    print(response.json())
-
 def get_interfaces_mode(ip_address, username, password, interfaces, sshClient=None):
     interfaces_mode = []
     for interface in interfaces:
@@ -180,12 +134,6 @@ def check_privileged_connection(connection):
         return data
     prompt = get_prompt(connection)
     return True if prompt[-1] == '#' else False
-
-def get_all_interfaces(ip_address, username, password):
-    interfaces = run_command_and_get_json(ip_address, username, password, 'show int switchport | include Name',ssh_new)
-    for idx, interface in enumerate(interfaces):
-        interfaces[idx] = interface.split()[1]
-    return interfaces
 
 def check_vlan_exists(ip_address, username, password, vlan_id):
     response = run_command_and_get_json(ip_address, username, password, f'show vlan id {vlan_id}')
