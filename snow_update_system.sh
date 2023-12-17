@@ -74,12 +74,12 @@ if [ ! -e "$version_file" ]; then
 fi
 
 # Read the version from the version.txt file
-new_version=$(cat "$version_file")
+new_version=$(source "$version_file" && echo "$version")
 
 # Check if the stored version file exists
 if [ -e "$stored_version_file" ]; then
     # Read the stored version from the file
-    stored_version=$(cat "$stored_version_file")
+    stored_version=$(source "$stored_version_file" && echo "$version")
 
     # Compare versions
     if [ "$new_version" -le "$stored_version" ]; then
