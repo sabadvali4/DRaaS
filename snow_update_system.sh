@@ -1,5 +1,4 @@
 #!/bin/bash
-
 DATE=$(date "+%Y%m%d%H%M")
 
 # Log file path
@@ -10,6 +9,9 @@ config_file="config/draas_config.ini"
 
 # the update zip sended by ServiceNow
 update_file="/opt/servicenow/mid/agent/export/update.zip"
+
+# File to store the code version
+stored_version_file="config/version.txt"
 
 echo "Started sync at ${DATE}"  >> "$log_file"
 if [ -z "$update_file" ]; then
@@ -60,6 +62,32 @@ fi
 temp_extracted_dir=$(mktemp -d)
 unzip -q "$update_file" -d "$temp_extracted_dir"
 echo "extracted the folder to "$temp_extracted_dir". " >> "$log_file"
+
+# Find the version.txt file
+version_file="$temp_extracted_dir/version.txt"
+
+# Check if the version file exists
+if [ ! -e "$version_file" ]; then
+    echo "Error: No version.txt file found in the update. Aborting update." >> "$log_file"
+    rm -r "$temp_extracted_dir"
+    exit 1
+fi
+
+# Read the version from the version.txt file
+new_version=$(cat "$version_file")
+
+# Check if the stored version file exists
+if [ -e "$stored_version_file" ]; then
+    # Read the stored version from the file
+    stored_version=$(cat "$stored_version_file")
+
+    # Compare versions
+    if [ "$new_version" -le "$stored_version" ]; then
+        echo "No newer version found. Aborting update." >> "$log_file"
+        rm -r "$temp_extracted_dir"
+        exit 0
+    fi
+fi
 
 # Find the configuration file under the 'config' directory
 config_dir="$project_dir/config/"
@@ -192,6 +220,10 @@ sudo systemctl restart consumer.service >> "$log_file" 2>&1
 # Check the status of the services
 producer_status=$(sudo systemctl is-active producer.service)
 consumer_status=$(sudo systemctl is-active consumer.service)
+
+# Update the stored version
+echo "$new_version" > "$stored_version_file"
+echo "Updated the new version of the code to: "$new_version"" >> "$log_file"
 
 # Clean up the extracted update file if it exists
 if [ -d "$temp_extracted_dir" ]; then
