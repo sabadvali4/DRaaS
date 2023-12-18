@@ -33,8 +33,12 @@ get_project_info()
 
     if [ ! -d $project_dir/venv ]; then
         echo "Setting up virtual environment..." >> "$log_file"
-    	python3 -m venv "$project_dir/venv"
+    	apt-get install -y python3.10-venv
+	python3 -m venv "$project_dir/venv"
     	source "$project_dir/venv/bin/activate"
+
+	# Ensure pip is available in the virtual environment
+        python -m ensurepip --default-pip
     else
     	source "$project_dir/venv/bin/activate"
     fi 
@@ -126,17 +130,17 @@ if [ -d "$project_dir/venv" ]; then
     source "$project_dir/venv/bin/activate"
 else
     # Create and activate virtual environment if it doesn't exist
+    apt-get install -y python3.10-venv
     echo "Setting up virtual environment..." >> "$log_file"
     python3 -m venv "$project_dir/venv"
     source "$project_dir/venv/bin/activate"
+    
+    # Ensure pip is available in the virtual environment
+    python -m ensurepip --default-pip
 fi
-
-# Ensure pip is available in the virtual environment
-python -m ensurepip --default-pip
 
 # Install Python dependencies
 pip install -r requirements.txt
-apt install redis
 # Copy the 'config' directory to /opt/
 sudo cp -a "$config_dir" /opt/
 
