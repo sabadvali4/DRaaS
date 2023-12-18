@@ -3,8 +3,7 @@ import re, json, sys, dotenv
 from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
 import gaia_api_calls
-import glv, api
-from glv import added_vlan
+import api
 import logging
 import settings
 from settings import *
@@ -90,7 +89,7 @@ def get_credentials(ip):
 
 # Main function
 def main():
-    glv.added_vlan  # Declare that we are using the global variable
+    global added_vlan  # Declare that we are using the global variable
     #max_wait_time = 100 * 60  # Maximum wait time in seconds (30 minutes)
     #start_time = time()
     while True:
