@@ -52,23 +52,9 @@ def get_interface_info(ip, user, password):
 def get_gaia_interface_info(ip, user, password):
     connection = SSHConnection(ip, user, password)
     time.sleep(1)
-
-    # Modify the command to retrieve interface information based on Gaia CLI
-    ssh_stdout = connection.exec_command('clish -c "show interfaces json"')
-
-    # Join the lines to form a single string
-    gaia_output = ''.join(ssh_stdout)
-
-    # Process the JSON output
-    try:
-        gaia_data = json.loads(gaia_output)
-        interface_info = gaia_data.get('interfaces', [])
-    except json.JSONDecodeError:
-        print("Failed to parse Gaia output as JSON.")
-        interface_info = []
-
-    connection.close_connection()
-    return interface_info
+    print("I did login") 
+    ssh_stdout = connection.exec_command('show interfaces all')
+    return ssh_stdout
 
 if __name__ == "__main__":
     # Example usage
