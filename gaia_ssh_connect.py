@@ -50,12 +50,15 @@ def get_interface_info(ip, user, password):
 
 
 def get_gaia_interface_info(ip, user, password):
+    #Login by ssh
     connection = SSHConnection(ip, user, password)
     time.sleep(1)
-    print("I did login")
+    #Send command and get output
     output = connection.exec_command('show interfaces all')
+    #Join it to one str
     output_str = '\n'.join(output)
 
+    #Sent to another function and parse it to Json format
     parsed_data = parse_gaia_output(output_str)
     json_data = json.dumps(parsed_data, indent=4)
     
@@ -64,17 +67,13 @@ def get_gaia_interface_info(ip, user, password):
 def parse_gaia_output(output):
     interfaces = {}
     current_interface = None
-
     # Split the output by interface sections
     sections = output.split("\n\n\n\n\n\n")
 
     for section in sections:
         lines = section.strip().split("\n")
-        
         if not lines:
             continue
-
-        # Extract the interface name from the first line
         current_interface = lines[0].split()[-1]
         interfaces[current_interface] = {}
 
@@ -83,15 +82,12 @@ def parse_gaia_output(output):
             if len(key_value) == 2:
                 key, value = key_value
                 interfaces[current_interface][key] = value
-
     return interfaces
 
 if __name__ == "__main__":
-
     gaia_ip = "10.169.32.178"
     gaia_username = "admin"
     gaia_password = "iolredi8"
 
     gaia_interface_info = get_gaia_interface_info(gaia_ip, gaia_username, gaia_password)
     print(gaia_interface_info)
-    #print(json.dumps(gaia_interface_info, indent=4))
