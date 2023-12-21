@@ -101,20 +101,19 @@ def get_gaia_route_info(ip, user, password):
 
 def parse_gaia_route_output(output):
     routes = []
-    lines = output.split("\n")   
+    lines = output.split("\n")
     for line in lines:
         # Check if the line starts with "C" indicating a connected route
         if line.startswith("C"):
             fields = line.split()
-            if len(fields) >= 5:
+            if len(fields) >= 6:
                 route_entry = {
                     "protocol": fields[0],      # Protocol type (C for connected)
                     "destination": fields[1],   # Destination network
-                    "via": fields[3],           # Next hop or interface
-                    "interface": fields[4]      # Interface
+                    "via": fields[3],           # Next hop or directly connected
+                    "interface": fields[5]      # Interface
                 }
                 routes.append(route_entry)
-
     return {"routes": routes}
 
 if __name__ == "__main__":
