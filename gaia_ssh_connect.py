@@ -29,24 +29,6 @@ class SSHConnection:
         else:
             print("Shell not opened.")
 
-def get_interface_info(ip, user, password):
-    connection = SSHConnection(ip, user, password)
-    time.sleep(1)
-
-    # Modify the command to retrieve interface information based on your device's CLI
-    ssh_stdout = connection.exec_command('show interfaces')
-
-    interface_info = []
-    for line in ssh_stdout:
-        # Process the output to extract relevant information
-        # Modify this part based on your device's CLI output format
-        match = re.match(r'Interface (.+), .*', line)
-        if match:
-            interface_info.append(match.group(1))
-
-    connection.close_connection()
-    return interface_info
-
 def get_gaia_interface_info(ip, user, password):
     #Login by ssh
     connection = SSHConnection(ip, user, password)
@@ -97,7 +79,6 @@ def get_gaia_route_info(ip, user, password):
     
     connection.close_connection()
     return json_data
-
 
 def parse_gaia_route_output(output):
     routes = []
