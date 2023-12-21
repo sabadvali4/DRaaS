@@ -92,12 +92,30 @@ def get_gaia_route_info(ip, user, password):
     output_str = '\n'.join(output)
 
     # Parse the output to JSON format
-    #parsed_data = parse_gaia_route_output(output_str)
-    json_data = json.dumps(output_str, indent=4)
+    parsed_data = parse_gaia_route_output(output_str)
+    json_data = json.dumps(parsed_data, indent=4)
     
     connection.close_connection()
     return json_data
 
+
+def parse_gaia_route_output(output):
+    routes = []
+    lines = output.split("\n")   
+    for line in lines:
+        # Check if the line starts with "C" indicating a connected route
+        if line.startswith("C"):
+            fields = line.split()
+            if len(fields) >= 5:
+                route_entry = {
+                    "protocol": fields[0],      # Protocol type (C for connected)
+                    "destination": fields[1],   # Destination network
+                    "via": fields[3],           # Next hop or interface
+                    "interface": fields[4]      # Interface
+                }
+                routes.append(route_entry)
+
+    return {"routes": routes}
 
 if __name__ == "__main__":
     gaia_ip = "10.169.32.178"
@@ -105,7 +123,7 @@ if __name__ == "__main__":
     gaia_password = "iolredi8"
 
     gaia_interface_info = get_gaia_interface_info(gaia_ip, gaia_username, gaia_password)
-    print(gaia_interface_info)
+    print("interfaces info: " + gaia_interface_info)
 
     gaia_route_info = get_gaia_route_info(gaia_ip, gaia_username, gaia_password)
-    print(gaia_route_info)
+    print("Routes info: " + gaia_route_info)
