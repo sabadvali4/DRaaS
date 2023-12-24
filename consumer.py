@@ -2,9 +2,8 @@ import redis, requests
 import re, json, sys, dotenv
 from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
-import gaia_api_calls
-import glv, api
-from glv import added_vlan
+import gaia_ssh_connect
+import api
 import logging
 import settings
 from settings import *
@@ -90,7 +89,7 @@ def get_credentials(ip):
 
 # Main function
 def main():
-    glv.added_vlan  # Declare that we are using the global variable
+    global added_vlan  # Declare that we are using the global variable
     #max_wait_time = 100 * 60  # Maximum wait time in seconds (30 minutes)
     #start_time = time()
     while True:
@@ -179,9 +178,9 @@ def main():
                                         else:
                                             output = change_interface_mode(req_switch_ip, retrieved_user, retrieved_password, req_interface_name, req_port_mode, req_vlans)
 
-                                        if glv.added_vlan is not None:  # Check if a VLAN was added
+                                        if added_vlan is not None:  # Check if a VLAN was added
                                             output_message = "Added VLANs: " + ", ".join(map(str, added_vlan))
-                                            glv.added_vlan = None  # Reset it after displaying the message
+                                            added_vlan = None  # Reset it after displaying the message
                                         else:
                                             output_message = ""
                                 
@@ -217,9 +216,9 @@ def main():
                                     else:
                                         output = change_interface_mode(req_switch_ip, retrieved_user, retrieved_password, req_interface_name, req_port_mode, req_vlans)
 
-                                    if glv.added_vlan is not None:  # Check if a VLAN was added
+                                    if added_vlan is not None:  # Check if a VLAN was added
                                         output_message = "Added VLANs: " + ", ".join(map(str, added_vlan))
-                                        glv.added_vlan = None  # Reset it after displaying the message
+                                        added_vlan = None  # Reset it after displaying the message
                                     else:
                                         output_message = ""
 
@@ -251,29 +250,25 @@ def main():
                         print(credential_dict)
 
                     elif switch_device_type == 'gaia':
-                    # Execute the Gaia-specific logic from gaia_api_calls.py
+                    # Execute the Gaia-specific logic from gaia_ssh_connect.py
                         try:
-                            sid = gaia_api_calls.gaia_login(req_switch_ip, switch_user, switch_password)
+                            gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
+                            gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
                             if discovery == "1":
-                                show_interfaces_result = gaia_api_calls.gaia_show_interfaces(req_switch_ip, sid)
 
                                 # Update status and output for discovery
                                 status_message = "status: success"
-                                output_message = json.dumps(show_interfaces_result, indent=4)
+                                output_message = f"Interface Info:\n{gaia_interface_info}\n\nRoute Info:\n{gaia_route_info}"
                                 output = f"{status_message}\n{output_message}"
+
                                 redis_set(req_id, "completed", output)
                                 task_sts = json.loads(redis_server.get(req_id).decode())["status"]
                                 send_status_update(req_id, task_sts, output)
 
                         except Exception as error:
                             print(error)
-    
-                        # Logout from Gaia
-                        gaia_api_calls.gaia_logout(req_switch_ip, sid)
-                
                 else:
                     print(f"No matching switch found for IP: {req_switch_ip}")
-
 
             elif "completed" in str(task_sts):
                 continue

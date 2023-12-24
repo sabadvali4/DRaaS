@@ -8,7 +8,8 @@ log_file="/var/log/script.log"
 config_file="config/draas_config.ini"
 
 # the update zip sended by ServiceNow
-update_file="/opt/servicenow/mid/agent/export/update.zip"
+#update_file="/opt/servicenow/mid/agent/export/update.zip"
+update_file=$(find /opt/servicenow/mid/agent/export/ -maxdepth 1 -type f -name '*.zip' -print -quit)
 
 # File to store the code version
 stored_version_file="config/version.txt"
@@ -32,8 +33,12 @@ get_project_info()
 
     if [ ! -d $project_dir/venv ]; then
         echo "Setting up virtual environment..." >> "$log_file"
-    	python3 -m venv "$project_dir/venv"
+    	apt-get install -y python3.10-venv
+	python3 -m venv "$project_dir/venv"
     	source "$project_dir/venv/bin/activate"
+
+	# Ensure pip is available in the virtual environment
+        python -m ensurepip --default-pip
     else
     	source "$project_dir/venv/bin/activate"
     fi 
@@ -64,7 +69,7 @@ unzip -q "$update_file" -d "$temp_extracted_dir"
 echo "extracted the folder to "$temp_extracted_dir". " >> "$log_file"
 
 # Find the version.txt file
-version_file="$temp_extracted_dir/version.txt"
+version_file="$temp_extracted_dir/config/version.txt"
 
 # Check if the version file exists
 if [ ! -e "$version_file" ]; then
@@ -74,12 +79,16 @@ if [ ! -e "$version_file" ]; then
 fi
 
 # Read the version from the version.txt file
-new_version=$(source "$version_file" && echo "$version")
+new_version=$(grep "^version=" "$version_file" | cut -d '=' -f2)
 
 # Check if the stored version file exists
 if [ -e "$stored_version_file" ]; then
     # Read the stored version from the file
-    stored_version=$(source "$stored_version_file" && echo "$version")
+    stored_version=$(grep "^version=" "$stored_version_file" | cut -d '=' -f2)
+
+    # Remove any non-numeric characters from the stored version
+    stored_version=$(echo "$stored_version" | tr -cd '[:digit:]')
+    echo "new_version: "$new_version", stored_version: "$stored_version"" >> "$log_file"
 
     # Compare versions
     if [ "$new_version" -le "$stored_version" ]; then
@@ -87,6 +96,7 @@ if [ -e "$stored_version_file" ]; then
         rm -r "$temp_extracted_dir"
         exit 0
     fi
+    echo "version=$new_version" > "$stored_version_file"
 fi
 
 # Find the configuration file under the 'config' directory
@@ -116,12 +126,17 @@ sudo cp "$ini_file" "$backup_file"
 mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
 
 # Activate virtual environment if it exists
-if [ $project_dir/venv ]; then
+if [ -d "$project_dir/venv" ]; then
     source "$project_dir/venv/bin/activate"
 else
     # Create and activate virtual environment if it doesn't exist
+    apt-get install -y python3.10-venv
+    echo "Setting up virtual environment..." >> "$log_file"
     python3 -m venv "$project_dir/venv"
     source "$project_dir/venv/bin/activate"
+    
+    # Ensure pip is available in the virtual environment
+    python -m ensurepip --default-pip
 fi
 
 # Install Python dependencies
@@ -136,7 +151,7 @@ for file in "$temp_extracted_dir"*; do
     # Exclude config and ini files
     if [[ "$filename" != "config" && "$filename" != *.ini ]]; then
         # Update the file in the destination folder
-        cp "$file" "$project_die/$filename"
+        cp -r "$file" "$project_dir/$filename"
         echo "copied the new file: "$file"." >> "$log_file"
     fi
 done
@@ -222,8 +237,8 @@ producer_status=$(sudo systemctl is-active producer.service)
 consumer_status=$(sudo systemctl is-active consumer.service)
 
 # Update the stored version
-echo "$new_version" > "$stored_version_file"
-echo "Updated the new version of the code to: "$new_version"" >> "$log_file"
+#echo "$new_version" > "$stored_version_file"
+#echo "Updated the new version of the code to: "$new_version"" >> "$log_file"
 
 # Clean up the extracted update file if it exists
 if [ -d "$temp_extracted_dir" ]; then
@@ -236,6 +251,9 @@ if [ -e "$update_file" ]; then
     rm "$update_file"
     echo "Update ZIP file deleted." >> "$log_file"
 fi
+
+# Clean up temporary folders
+rm -rf $project_dir/tmp.*
 
 # Print the status message
 if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
