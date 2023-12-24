@@ -9,7 +9,7 @@ import settings
 from settings import *
 settings.init()
 
-# Create a Redis server connections
+# Create a Redis server connections.
 redis_server = redis.Redis()
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
