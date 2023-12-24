@@ -15,7 +15,7 @@ get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 update_status_url= settings.url + "/postHealthMonitoring"
 
-# get an instance of the logger object this module will use
+# get an instance of the logger object this module will use..
 logger = logging.getLogger(__name__)
 
 # Check if the systemd.journal module is available
