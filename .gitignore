@@ -9,3 +9,4 @@ env/
 config/draas_config.ini
 config/parameters.ini
 venv/
+lib/

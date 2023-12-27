@@ -2,9 +2,10 @@ import redis, requests
 import re, json, sys, dotenv
 from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
+import glv; from glv import added_vlan
 import gaia_ssh_connect
 import api
-import logging
+import logging, time
 import settings
 from settings import *
 settings.init()
@@ -29,7 +30,7 @@ try:
     journald_handler = JournaldLogHandler()
 
     # set a formatter to include the level name
-    journald_handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+    journald_handler.setFormatter(logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
 
     # add the journald handler to the current logger
     logger.addHandler(journald_handler)
@@ -89,7 +90,7 @@ def get_credentials(ip):
 
 # Main function
 def main():
-    global added_vlan  # Declare that we are using the global variable
+    glv.added_vlan  # Declare that we are using the global variable
     #max_wait_time = 100 * 60  # Maximum wait time in seconds (30 minutes)
     #start_time = time()
     while True:
@@ -178,9 +179,9 @@ def main():
                                         else:
                                             output = change_interface_mode(req_switch_ip, retrieved_user, retrieved_password, req_interface_name, req_port_mode, req_vlans)
 
-                                        if added_vlan is not None:  # Check if a VLAN was added
+                                        if glv.added_vlan is not None:  # Check if a VLAN was added
                                             output_message = "Added VLANs: " + ", ".join(map(str, added_vlan))
-                                            added_vlan = None  # Reset it after displaying the message
+                                            glv.added_vlan = None  # Reset it after displaying the message
                                         else:
                                             output_message = ""
                                 
@@ -216,9 +217,9 @@ def main():
                                     else:
                                         output = change_interface_mode(req_switch_ip, retrieved_user, retrieved_password, req_interface_name, req_port_mode, req_vlans)
 
-                                    if added_vlan is not None:  # Check if a VLAN was added
+                                    if glv.added_vlan is not None:  # Check if a VLAN was added
                                         output_message = "Added VLANs: " + ", ".join(map(str, added_vlan))
-                                        added_vlan = None  # Reset it after displaying the message
+                                        glv.added_vlan = None  # Reset it after displaying the message
                                     else:
                                         output_message = ""
 
@@ -254,12 +255,18 @@ def main():
                         try:
                             gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
                             gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                            interface_dict = json.loads(gaia_interface_info)
+                            route_dict = json.loads(gaia_route_info)
+
+                            combined_data = {
+                                    "interfaces": interface_dict, "routes": route_dict}
+                            json_data = json.dumps(combined_data, indent=4)
                             if discovery == "1":
 
-                                # Update status and output for discovery
+                                #Update status and output for discovery
                                 status_message = "status: success"
-                                output_message = f"Interface Info:\n{gaia_interface_info}\n\nRoute Info:\n{gaia_route_info}"
-                                output = f"{status_message}\n{output_message}"
+                                output_message = json_data
+                                output = json_data
 
                                 redis_set(req_id, "completed", output)
                                 task_sts = json.loads(redis_server.get(req_id).decode())["status"]
