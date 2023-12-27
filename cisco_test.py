@@ -1,6 +1,7 @@
 import paramiko
 import time, re
 import json
+from functions import run_command_and_get_json, change_interface_mode
 class SSHConnection:
     shell = None
     client = None
@@ -29,7 +30,7 @@ class SSHConnection:
         else:
             print("Shell not opened.")
 
-def get_gaia_interface_info(ip, user, password):
+def get_cisco_interface_info(ip, user, password):
     #Login by ssh
     connection = SSHConnection(ip, user, password)
     time.sleep(1)
@@ -39,13 +40,13 @@ def get_gaia_interface_info(ip, user, password):
     output_str = '\n'.join(output)
 
     #Sent to another function and parse it to Json format
-    parsed_data = parse_gaia_output(output_str)
+    parsed_data = parse_cisco_output(output_str)
     json_data = json.dumps(parsed_data, indent=4)
     
     connection.close_connection()
     return json_data
 
-def parse_gaia_output(output):
+def parse_cisco_output(output):
     interfaces = {}
     current_interface = None
     # Split the output by interface sections
@@ -65,7 +66,7 @@ def parse_gaia_output(output):
                 interfaces[current_interface][key] = value
     return interfaces
 
-def get_gaia_route_info(ip, user, password):
+def get_cisco_route_info(ip, user, password):
     connection = SSHConnection(ip, user, password)
     time.sleep(1)
     # Send command to get route information
@@ -74,13 +75,13 @@ def get_gaia_route_info(ip, user, password):
     output_str = '\n'.join(output)
 
     # Parse the output to JSON format
-    parsed_data = parse_gaia_route_output(output_str)
+    parsed_data = parse_cisco_route_output(output_str)
     json_data = json.dumps(parsed_data, indent=4)
     
     connection.close_connection()
     return json_data
 
-def parse_gaia_route_output(output):
+def parse_cisco_route_output(output):
     routes = []
     lines = output.split("\n")
     for line in lines:
@@ -98,17 +99,18 @@ def parse_gaia_route_output(output):
     return routes
 
 if __name__ == "__main__":
-    gaia_ip = "172.16.18.113"
-    gaia_username = "user"
-    gaia_password = "password"
+    cisco_ip = "192.168.128.1"
+    cisco_username = "servicenow"
+    cisco_password = "serv1cen0w10"
+    req_cmd="show run"
 
-    gaia_interface_info = get_gaia_interface_info(gaia_ip, gaia_username, gaia_password)
-    #print("interfaces" + gaia_interface_info)
-    gaia_route_info = get_gaia_route_info(gaia_ip, gaia_username, gaia_password)
-    #print("routes" + gaia_route_info)
-
-    interface_dict = json.loads(gaia_interface_info)
-    route_dict = json.loads(gaia_route_info)
-    combined_data = {"interfaces": interface_dict, "routes": route_dict}
-    json_data = json.dumps(combined_data, indent=4)
-    print(json_data)
+    # cisco_interface_info = get_cisco_interface_info(cisco_ip, cisco_username, cisco_password)
+    output = run_command_and_get_json(cisco_ip, cisco_username, cisco_password, req_cmd)
+    #print("interfaces" + cisco_interface_info)
+    #print("routes" + cisco_route_info)
+    print(output)
+#    interface_dict = json.loads(output)
+#    route_dict = json.loads(cisco_route_info)
+#    combined_data = {"interfaces": interface_dict, "routes": route_dict}
+#    json_data = json.dumps(combined_data, indent=4)
+#    print(json_data)

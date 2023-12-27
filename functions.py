@@ -2,11 +2,9 @@ import time, sys, threading; from unittest import result; import requests, json,
 from datetime import datetime; import paramiko, configparser, confparser; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
-#import glv; from glv import added_vlan  # Import the added_vlan list
-global added_vlan
-added_vlan=[]
+import glv; from glv import added_vlan  # Import the added_vlan list
 load_dotenv()
-
+from time import sleep
 config = configparser.ConfigParser()
 config.sections()
 config.read('./config/parameters.ini')
@@ -71,29 +69,55 @@ class ssh_new:
         else:
             print("Shell not opened.")
 
+def get_device_type(ssh_client):
+    """Determine the device type based on the 'show version' output."""
+    output = ssh_client.exec_command("show version")
+    if "Cisco Nexus" in output or "Nexus" in output or "NX-OS" in output:
+        return "nexus"
+    elif "Cisco IOS" in output:
+        return "ios"
+    else:
+        raise ValueError("Unsupported device type detected.")
+
 def run_command_and_get_json(ip_address, username, password, command):
     # Create an instance of the SSHClient class
     ssh_client = SSHClient(ip_address, username, password)
     try:
         # Establish the SSH connection
         ssh_client.connect()
-        if 'show run' in command:
-            output = ssh_client.exec_command(command)
-            parsed_data = confparser.Dissector.from_file('ios.yaml').parse_str(output)
-            json_data = json.dumps(parsed_data, indent=4)
+
+        # Determine device type
+        device_type = get_device_type(ssh_client)
+
+        if device_type == "nexus":
+            if 'show run' in command:
+                output = ssh_client.exec_command(command)
+                parsed_data = confparser.Dissector.from_file('nexus.yaml').parse_str(output)
+                json_data = json.dumps(parsed_data, indent=4)
+            else:
+                output = ssh_client.exec_command(command, use_textfsm=True )
+                json_data = json.dumps(output, indent=2)
+        elif device_type == "ios":
+            if 'show run' in command:
+                output = ssh_client.exec_command(command)
+                parsed_data = confparser.Dissector.from_file('ios.yaml').parse_str(output)
+                json_data = json.dumps(parsed_data, indent=4)
+            else:
+                output = ssh_client.exec_command(command, use_textfsm=True)
+                json_data = json.dumps(output, indent=2)
         else:
-            output = ssh_client.exec_command(command, use_textfsm=True)
-            json_data = json.dumps(output, indent=2)
+            raise ValueError("Unsupported device type detected.")
 
         return json_data
 
-    except (paramiko.AuthenticationException, paramiko.SSHException) as error:
-        # Raise an exception if there is an error during the connection
+    except (paramiko.AuthenticationException, paramiko.SSHException, ValueError) as error:
+        # Raise an exception if there is an error during the connection or if unsupported device type detected
         raise error
 
     finally:
         # Close the SSH connection when done
         ssh_client.close_connection()
+
 
 def is_json(myjson):
   try:
