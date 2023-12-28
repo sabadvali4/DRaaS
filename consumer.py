@@ -2,9 +2,9 @@ import redis, requests
 import re, json, sys, dotenv
 from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
-import glv; from glv import added_vlan
+import glv; from glv import added_vlan, Enabled
 import gaia_ssh_connect
-import api
+#import api
 import logging, time
 import settings
 from settings import *
@@ -12,6 +12,9 @@ settings.init()
 
 # Create a Redis server connections.
 redis_server = redis.Redis()
+
+redis_server.set("Enabled", int(glv.Enabled))
+
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
 current_task_que = "current_task_que"
@@ -95,6 +98,13 @@ def main():
     #start_time = time()
     while True:
         #start_time = time()
+        enabled_value = redis_server.get("Enabled")
+
+        if enabled_value and not bool(int(enabled_value.decode())):
+            logger.info("Processing is disabled. Waiting for 'Enabled' to be True.")
+            sleep(5)
+            continue
+
         while True:
             q_len = redis_server.llen(queue_name)
             if q_len > 0:
