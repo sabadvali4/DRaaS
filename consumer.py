@@ -13,8 +13,6 @@ settings.init()
 # Create a Redis server connections.
 redis_server = redis.Redis()
 
-redis_server.set("Enabled", int(glv.Enabled))
-
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
 current_task_que = "current_task_que"
