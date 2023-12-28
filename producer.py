@@ -4,11 +4,15 @@ import time; from time import *
 import time as my_time
 import requests; import re; import json; import logging
 from datetime import datetime
+import glv; from glv import Enabled
 import settings
 settings.init()
 
-
 redis_server = redis.Redis()
+
+# Set the value of Enabled to Redis when the script starts
+redis_server.set("Enabled", int(glv.Enabled))
+
 queue_name = "api_req_queue"
 switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
@@ -89,7 +93,6 @@ def redis_queue_push(TASKS):
                     if "completed" in kv_status["status"]:
                         output = re.sub("      ", "\n", kv_status["output"])
                         send_status_update(TASK["record_id"], kv_status["status"], output)
-
                     else:
                         # Check if mid_name matches the specified value
                         if TASK.get("mid_name", "") == settings.mid_server:
@@ -112,6 +115,15 @@ def redis_queue_push(TASKS):
 
 if __name__ == "__main__":
     while True:
+        # Get the value of 'Enabled' from Redis
+        enabled_value = redis_server.get("Enabled")
+
+        # If 'Enabled' is False, skip processing tasks
+        if enabled_value and not bool(int(enabled_value.decode())):
+            logger.info("Processing is disabled. Waiting for 'Enabled' to be True.")
+            sleep(5)
+            continue
+
         # Get the tasks from the API
         tasks = get_requests()
 
