@@ -2,7 +2,7 @@ import redis, requests
 import re, json, sys, dotenv
 from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
-import glv; from glv import added_vlan, Enabled
+import glv; from glv import added_vlan
 import gaia_ssh_connect
 #import api
 import logging, time
@@ -12,7 +12,6 @@ settings.init()
 
 # Create a Redis server connections.
 redis_server = redis.Redis()
-
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
 current_task_que = "current_task_que"
@@ -27,20 +26,20 @@ logger = logging.getLogger(__name__)
 try:
     from systemd.journal import JournaldLogHandler
 
-    # instantiate the JournaldLogHandler to hook into systemd
+    # Instantiate the JournaldLogHandler to hook into systemd
     journald_handler = JournaldLogHandler()
 
-    # set a formatter to include the level name
+    # Set a formatter to include the level name, time, and date
     journald_handler.setFormatter(logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
 
-    # add the journald handler to the current logger
+    # Add the journald handler to the current logger
     logger.addHandler(journald_handler)
 
 except ImportError:
     # systemd.journal module is not available, use basic console logging
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-# optionally set the logging level
+# Optionally set the logging level
 logger.setLevel(logging.DEBUG)
 
 # Dictionary to store credentials of switches
@@ -96,13 +95,6 @@ def main():
     #start_time = time()
     while True:
         #start_time = time()
-        enabled_value = redis_server.get("Enabled")
-
-        if enabled_value and not bool(int(enabled_value.decode())):
-            logger.info("Processing is disabled. Waiting for 'Enabled' to be True.")
-            sleep(5)
-            continue
-
         while True:
             q_len = redis_server.llen(queue_name)
             if q_len > 0:
