@@ -126,11 +126,27 @@ def add_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection.create_vlan(physical_interface, vlan_id)
     connection.close_connection()
 
+def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
+    connection = SSHConnection(ip, user, password)
+    connection.open_shell()
+    time.sleep(1)
+    connection.send_shell(f'delete interface {physical_interface} vlan {vlan_id}')
+    connection.send_shell('save config')
+    connection.close_connection()
+
 def add_gaia_route(ip, user, password, destination_network, via):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
     connection.create_route(destination_network,via)
+    connection.close_connection()
+
+def remove_gaia_route(ip,user,password,destination_network):
+    connection = SSHConnection(ip,user, password)
+    connection.open_shell()
+    time.sleep(1)
+    connection.send_shell(f'set static-route {destination_network} off')
+    connection.send_shell('save config')
     connection.close_connection()
 
 if __name__ == "__main__":
@@ -139,9 +155,12 @@ if __name__ == "__main__":
     gaia_password = "iolredi8"
 
     #adding vlan+route to test
-    add_gaia_vlan(gaia_ip, gaia_username, gaia_password, "eth0", 18)
-    #add_gaia_route(gaia_ip, gaia_username, gaia_password, "192.168.1.0/24", "10.169.32.1")
-    add_gaia_route(gaia_ip, gaia_username, gaia_password, "192.168.2.0/24", "10.169.32.2")
+    #add_gaia_vlan(gaia_ip, gaia_username, gaia_password, "eth0", 18)
+    #add_gaia_route(gaia_ip, gaia_username, gaia_password, "192.168.2.0/24", "10.169.32.2")
+    
+    #remove vlan+route to test
+    remove_gaia_route(gaia_ip,gaia_username,gaia_password,"192.168.2.0/24")
+    remove_gaia_vlan(gaia_ip, gaia_username, gaia_password, "eth0", 18)
 
     gaia_interface_info = get_gaia_interface_info(gaia_ip, gaia_username, gaia_password)
     #print("interfaces" + gaia_interface_info)
