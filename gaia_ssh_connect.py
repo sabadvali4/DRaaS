@@ -29,6 +29,25 @@ class SSHConnection:
         else:
             print("Shell not opened.")
 
+    def create_vlan(self, vlan_id, vlan_name):
+        commands = [
+            "vlan database",
+            f"vlan {vlan_id} name {vlan_name}",
+            "exit"
+        ]
+        for cmd in commands:
+            self.send_shell(cmd)
+            time.sleep(1)
+    
+    def get_vlans(self):
+        ssh_stdout = self.exec_command('show vlan brief')
+        switch_vlans_list = []
+        for vlan in ssh_stdout:
+            match = re.findall("^\d+", vlan)
+            if match:
+                switch_vlans_list.append(match[0])
+        return switch_vlans_list
+
 def get_gaia_interface_info(ip, user, password):
     #Login by ssh
     connection = SSHConnection(ip, user, password)
@@ -96,6 +115,27 @@ def parse_gaia_route_output(output):
                 }
                 routes.append(route_entry)
     return routes
+
+def add_gaia_vlan(ip, user, password, vlan_id, vlan_name):
+    connection = SSHConnection(ip, user, password)
+    connection.open_shell()
+    time.sleep(1)
+    
+    connection.create_vlan(vlan_id, vlan_name)
+    
+    vlans = [(vlan_id, vlan_name)]
+    for vlan in vlans:
+        if vlan[0] in connection.get_vlans():
+            print(f"Created: {vlan[1]}-{vlan[0]}")
+        else:
+            print(f"VLAN: {vlan[0]} wasn't created")
+
+def add_gaia_route(ip, user, password, destination, next_hop):
+    connection = SSHConnection(ip, user, password)
+    time.sleep(1)
+    output = connection.add_route(destination, next_hop)
+    connection.close_connection()
+    return '\n'.join(output)
 
 if __name__ == "__main__":
     gaia_ip = "172.16.18.113"
