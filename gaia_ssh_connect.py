@@ -40,13 +40,13 @@ class SSHConnection:
         except Exception as e:
             print(f"Error occurred while creating VLAN: {e}")
 
-    def create_route(self, ip, user, password, destination_network, next_hop, interface):
+    def create_route(self,destination_network, via):
         try:
-            command = f"add route {destination_network} via {next_hop} dev {interface}"
+            command = f"set static-route {destination_network} nexthop gateway address {via} on"
             self.send_shell(command)
             time.sleep(1)
             self.send_shell('save config')
-            print(f"Route to {destination_network} via {next_hop} added successfully.")
+            print(f"Route to {destination_network} via {via} added successfully.")
         except Exception as e:
             print(f"Error occurred while adding route: {e}")
 
@@ -106,7 +106,7 @@ def parse_gaia_route_output(output):
     lines = output.split("\n")
     for line in lines:
         # Check if the line starts with "C" indicating a connected route
-        if line.startswith("C"):
+        if line.startswith("C") or line.startswith("S"):
             fields = line.split()
             if len(fields) >= 6:
                 route_entry = {
@@ -126,11 +126,11 @@ def add_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection.create_vlan(physical_interface, vlan_id)
     connection.close_connection()
 
-def add_gaia_route(ip, user, password, destination_network, next_hop, interface):
+def add_gaia_route(ip, user, password, destination_network, via):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
-    connection.create_route(destination_network,next_hop,interface)
+    connection.create_route(destination_network,via)
     connection.close_connection()
 
 if __name__ == "__main__":
@@ -140,7 +140,9 @@ if __name__ == "__main__":
 
     #adding vlan+route to test
     add_gaia_vlan(gaia_ip, gaia_username, gaia_password, "eth0", 18)
-    add_gaia_route(gaia_ip, gaia_username, gaia_password, "192.168.1.0/24", "10.169.32.1", "eth0")
+    #add_gaia_route(gaia_ip, gaia_username, gaia_password, "192.168.1.0/24", "10.169.32.1")
+    add_gaia_route(gaia_ip, gaia_username, gaia_password, "192.168.2.0/24", "10.169.32.2")
+
     gaia_interface_info = get_gaia_interface_info(gaia_ip, gaia_username, gaia_password)
     #print("interfaces" + gaia_interface_info)
     gaia_route_info = get_gaia_route_info(gaia_ip, gaia_username, gaia_password)
