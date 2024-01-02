@@ -40,6 +40,16 @@ class SSHConnection:
         except Exception as e:
             print(f"Error occurred while creating VLAN: {e}")
 
+    def create_route(self, ip, user, password, destination_network, next_hop, interface):
+        try:
+            command = f"add route {destination_network} via {next_hop} dev {interface}"
+            self.send_shell(command)
+            time.sleep(1)
+            self.send_shell('save config')
+            print(f"Route to {destination_network} via {next_hop} added successfully.")
+        except Exception as e:
+            print(f"Error occurred while adding route: {e}")
+
 def get_gaia_interface_info(ip, user, password):
     #Login by ssh
     connection = SSHConnection(ip, user, password)
@@ -116,6 +126,13 @@ def add_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection.create_vlan(physical_interface, vlan_id)
     connection.close_connection()
 
+def add_gaia_route(ip, user, password, destination_network, next_hop, interface):
+    connection = SSHConnection(ip, user, password)
+    connection.open_shell()
+    time.sleep(1)
+    connection.create_route(destination_network,next_hop,interface)
+    connection.close_connection()
+
 if __name__ == "__main__":
     gaia_ip = "10.169.32.178"
     gaia_username = "admin"
@@ -123,6 +140,7 @@ if __name__ == "__main__":
 
     #adding vlan+route to test
     add_gaia_vlan(gaia_ip, gaia_username, gaia_password, "eth0", 18)
+    add_gaia_route(gaia_ip, gaia_username, gaia_password, "192.168.1.0/24", "10.169.32.1", "eth0")
     gaia_interface_info = get_gaia_interface_info(gaia_ip, gaia_username, gaia_password)
     #print("interfaces" + gaia_interface_info)
     gaia_route_info = get_gaia_route_info(gaia_ip, gaia_username, gaia_password)
