@@ -126,6 +126,7 @@ def main():
                     req_cmd = ""
             else:
                 print("Queue is empty. Waiting...")
+                logger.info("Queue is empty. Waiting...")
 
             task_sts = redis_server.get(req_id)
             if task_sts is None:
