@@ -21,26 +21,24 @@ update_req_url = settings.url + "/SetCommandStatus"
 
 # this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)
-
-# Check if the systemd.journal module is available
+# Define the time format
+time_format = "%Y-%m-%d %H:%M:%S"
+# Optionally set the logging level
+logger.setLevel(logging.DEBUG)
 try:
     from systemd.journal import JournaldLogHandler
 
     # Instantiate the JournaldLogHandler to hook into systemd
     journald_handler = JournaldLogHandler()
 
-    # Set a formatter to include the level name, time, and date
-    journald_handler.setFormatter(logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+    journald_handler.setFormatter(logging.Formatter(fmt=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format))
 
     # Add the journald handler to the current logger
     logger.addHandler(journald_handler)
 
 except ImportError:
     # systemd.journal module is not available, use basic console logging
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-# Optionally set the logging level
-logger.setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
 
 # Dictionary to store credentials of switches
 credential_dict = {}
@@ -103,6 +101,7 @@ def main():
                 #print("Maximum wait time reached. Exiting.")
                 #return  # Exit the program after waiting for the maximum time
             print("Queue is empty. Waiting...")
+            logger.info("Queue is empty. Waiting...." )
             sleep(10)  # Wait for 10 seconds and check the queue again
 
         print(f'Queue length: {q_len}')

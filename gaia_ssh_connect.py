@@ -163,9 +163,7 @@ if __name__ == "__main__":
     remove_gaia_vlan(gaia_ip, gaia_username, gaia_password, "eth0", 18)
 
     gaia_interface_info = get_gaia_interface_info(gaia_ip, gaia_username, gaia_password)
-    #print("interfaces" + gaia_interface_info)
     gaia_route_info = get_gaia_route_info(gaia_ip, gaia_username, gaia_password)
-    #print("routes" + gaia_route_info)
 
     interface_dict = json.loads(gaia_interface_info)
     route_dict = json.loads(gaia_route_info)
