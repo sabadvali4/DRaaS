@@ -260,10 +260,10 @@ def main():
                         try:
                             ##VLAN add/remove
                             if discovery == "0" and req_interface_name and req_vlans:
-                                if req_cmd == "add":
+                                if req_cmd == "Add vlan":
                                     gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "added"
-                                elif req_cmd == "delete":
+                                elif req_cmd == "Delete vlan":
                                     gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "removed"
 
@@ -277,10 +277,10 @@ def main():
 
                             ##routing add/remove
                             elif discovery == "0" and destination and via:
-                                if req_cmd == "add":
+                                if req_cmd == "Add route":
                                     gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, via)
                                     action = "added"
-                                elif req_cmd == "delete":
+                                elif req_cmd == "Delete route":
                                     gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination, via)
                                     action = "removed"
 
@@ -288,7 +288,7 @@ def main():
                                 route_dict = json.loads(gaia_route_info)
                                 combined_data = {"routes": route_dict}
                                 json_data = json.dumps(combined_data, indent=4)
-                                
+
                                 status_message = "status: success"
                                 output_message = f"Route for {destination} via {via} {action} on Gaia switch {req_switch_ip}."
                                 output = f"{status_message}\n{output_message}\n{json_data}"
