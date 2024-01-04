@@ -115,22 +115,46 @@ def get_gaia_route_info(ip, user, password):
     connection.close_connection()
     return json_data
 
+# def parse_gaia_route_output(output):
+#     routes = []
+#     lines = output.split("\n")
+#     for line in lines:
+#         if line.startswith("C") or line.startswith("S"):
+#             fields = line.split()
+#             if len(fields) >= 6:
+#                 route_entry = {
+#                     "protocol": fields[0],      # Protocol type (C for connected)
+#                     "destination": fields[1],   # Destination network
+#                     "via": fields[3],           # Next hop or directly connected
+#                     "interface": fields[5]      # Interface
+#                 }
+#                 routes.append(route_entry)
+#     return routes
+
 def parse_gaia_route_output(output):
     routes = []
     lines = output.split("\n")
     for line in lines:
-        # Check if the line starts with "C" indicating a connected route
-        if line.startswith("C") or line.startswith("S"):
-            fields = line.split()
-            if len(fields) >= 6:
-                route_entry = {
-                    "protocol": fields[0],      # Protocol type (C for connected)
-                    "destination": fields[1],   # Destination network
-                    "via": fields[3],           # Next hop or directly connected
-                    "interface": fields[5]      # Interface
-                }
-                routes.append(route_entry)
+        parts = line.split(",")  # Splitting the line by commas
+        if len(parts) >= 3:
+            protocol = parts[0].strip()  # First part should be the protocol
+            # Extracting destination from the second part
+            destination = parts[1].split()[1].strip() if "via" in parts[1] else parts[1].strip()
+            # Extracting the via information (next hop or directly connected)
+            via = parts[1].split()[2].rstrip(',') if "via" in parts[1] else "directly"
+            # Extracting interface from the third part or from the last part if it contains 'eth'
+            interface = parts[2].strip() if parts[2].startswith("eth") else parts[-1].strip()
+            
+            route_entry = {
+                "protocol": protocol,
+                "destination": destination,
+                "via": via,
+                "interface": interface
+            }
+            routes.append(route_entry)
+    
     return routes
+
 
 def expand_vlan_ranges(vlan_list):
     expanded = []
