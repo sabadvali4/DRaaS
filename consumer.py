@@ -276,7 +276,7 @@ def main():
                                 send_status_update(req_id, task_sts, output)
 
                             ##routing add/remove
-                            elif destination and via:
+                            elif discovery == "0" and destination and via:
                                 if req_cmd == "add":
                                     gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, via)
                                     action = "added"
