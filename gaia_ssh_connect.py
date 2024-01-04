@@ -41,15 +41,28 @@ class SSHConnection:
         except Exception as e:
             print(f"Error occurred while creating VLAN: {e}")
 
-    def create_route(self,destination_network, via):
+    def create_route(self, destination_network, via=None, gateway=None):
         try:
-            command = f"set static-route {destination_network} nexthop gateway address {via} on"
+            if via and gateway:
+                # Both via and gateway are present
+                command = f"set static-route {destination_network} nexthop gateway logical {via} on"
+            elif via:
+                # Only via is present
+                command = f"set static-route {destination_network} nexthop gateway logical {via} on"
+            elif gateway:
+                # Only gateway is present
+                command = f"set static-route {destination_network} nexthop gateway address {gateway} on"
+            else:
+                #Neither via nor gateway is present
+                print("Neither via nor gateway provided.")
+                return
+        
             self.send_shell(command)
             time.sleep(1)
             self.send_shell('save config')
-            print(f"Route to {destination_network} via {via} added successfully.")
+            print(f"Route to {destination_network} configured successfully.")
         except Exception as e:
-            print(f"Error occurred while adding route: {e}")
+            print(f"Error occurred while configuring route: {e}")
 
 def get_gaia_interface_info(ip, user, password):
     #Login by ssh
@@ -105,31 +118,18 @@ def get_gaia_route_info(ip, user, password):
 def parse_gaia_route_output(output):
     routes = []
     lines = output.split("\n")
-    
     for line in lines:
-        fields = line.split()
-        
-        if fields[0] in ["C", "S"]:
-            protocol = fields[0]
-            destination = fields[1]
-            
-            # Check if "is directly connected" exists in the line
-            if "directly connected" in line:
-                via = "directly"
-                interface = fields[-1]  # Extracting the last field as the interface
-            else:
-                via = fields[3].rstrip(',')
-                interface = fields[5]
-            
-            route_entry = {
-                "protocol": protocol,
-                "destination": destination,
-                "via": via,
-                "interface": interface
-            }
-            
-            routes.append(route_entry)
-            
+        # Check if the line starts with "C" indicating a connected route
+        if line.startswith("C") or line.startswith("S"):
+            fields = line.split()
+            if len(fields) >= 6:
+                route_entry = {
+                    "protocol": fields[0],      # Protocol type (C for connected)
+                    "destination": fields[1],   # Destination network
+                    "via": fields[3],           # Next hop or directly connected
+                    "interface": fields[5]      # Interface
+                }
+                routes.append(route_entry)
     return routes
 
 def expand_vlan_ranges(vlan_list):
@@ -159,11 +159,21 @@ def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection.send_shell('save config')
     connection.close_connection()
 
-def add_gaia_route(ip, user, password, destination_network, via):
+def add_gaia_route(ip, user, password, destination_network, via=None, gateway=None):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
-    connection.create_route(destination_network,via)
+    
+    # Call the create_route method with appropriate parameters
+    if via and gateway:
+        connection.create_route(destination_network, via=via, gateway=gateway)
+    elif via:
+        connection.create_route(destination_network, via=via)
+    elif gateway:
+        connection.create_route(destination_network, gateway=gateway)
+    else:
+        print("Neither via nor gateway provided. Route configuration failed.")
+    
     connection.close_connection()
 
 def remove_gaia_route(ip,user,password,destination_network):
