@@ -122,7 +122,6 @@ def main():
                 discovery=json_req["discovery"]
 
                 #switch_status=json_req["switch_status"]
-                protocol=json_req["protocol"]
                 destination=json_req["destination"]
                 via=json_req["via"]
 
@@ -277,11 +276,16 @@ def main():
 
                             ##routing add/remove
                             elif discovery == "0" and destination and via:
+                                if "gateway" in json_req:  # Check if the gateway is provided in the request
+                                    gateway = json_req["gateway"]
+                                else:
+                                    gateway = None  # Default value if gateway is not provided
+
                                 if req_cmd == "Add route":
-                                    gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, via)
+                                    gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, via, gateway=gateway)
                                     action = "added"
                                 elif req_cmd == "Delete route":
-                                    gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination, via)
+                                    gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination, via, gateway=gateway)
                                     action = "removed"
 
                                 gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
@@ -314,14 +318,20 @@ def main():
 
                         except Exception as error:
                             status_message = "status: failed"
-                            if req_cmd == "add":
-                                output = f"{status_message} Error adding VLANs: {error}"
-                            elif req_cmd == "delete":
-                                output = f"{status_message} Error removing VLANs: {error}"
+    
+                            # Adjusting the error message based on the command and including the gateway if available
+                            if req_cmd == "Add route":
+                                output = f"{status_message} Error adding route for {destination} via {via} and gateway {gateway if gateway else 'None'}: {error}"
+                            elif req_cmd == "Delete route":
+                                output = f"{status_message} Error removing route for {destination} via {via} and gateway {gateway if gateway else 'None'}: {error}"
+                            elif req_cmd == "Add vlan":
+                                output = f"{status_message} Error adding VLANs {req_vlans} to interface {req_interface_name}: {error}"
+                            elif req_cmd == "Delete vlan":
+                                output = f"{status_message} Error removing VLANs {req_vlans} from interface {req_interface_name}: {error}"
                             else:
                                 output = f"{status_message} Error: {error}"
 
-                            send_status_update(req_id, "failed", error)
+                            send_status_update(req_id, "failed", output)
                
                 else:
                     print(f"No matching switch found for IP: {req_switch_ip}")
