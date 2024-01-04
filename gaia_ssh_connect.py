@@ -105,18 +105,31 @@ def get_gaia_route_info(ip, user, password):
 def parse_gaia_route_output(output):
     routes = []
     lines = output.split("\n")
+    
     for line in lines:
-        # Check if the line starts with "C" indicating a connected route
-        if line.startswith("C") or line.startswith("S"):
-            fields = line.split()
-            if len(fields) >= 6:
-                route_entry = {
-                    "protocol": fields[0],      # Protocol type (C for connected)
-                    "destination": fields[1],   # Destination network
-                    "via": fields[3],           # Next hop or directly connected
-                    "interface": fields[5]      # Interface
-                }
-                routes.append(route_entry)
+        fields = line.split()
+        
+        if fields[0] in ["C", "S"]:
+            protocol = fields[0]
+            destination = fields[1]
+            
+            # Check if "is directly connected" exists in the line
+            if "directly connected" in line:
+                via = "directly"
+                interface = fields[-1]  # Extracting the last field as the interface
+            else:
+                via = fields[3].rstrip(',')
+                interface = fields[5]
+            
+            route_entry = {
+                "protocol": protocol,
+                "destination": destination,
+                "via": via,
+                "interface": interface
+            }
+            
+            routes.append(route_entry)
+            
     return routes
 
 def expand_vlan_ranges(vlan_list):
