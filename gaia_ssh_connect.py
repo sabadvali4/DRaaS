@@ -120,43 +120,28 @@ def parse_gaia_route_output(output):
     lines = output.split("\n")
     for line in lines:
         if line.startswith("C") or line.startswith("S"):
-            fields = line.split()
-            if len(fields) >= 6:
-                route_entry = {
-                    "protocol": fields[0],      # Protocol type (C for connected)
-                    "destination": fields[1],   # Destination network
-                    "via": fields[3],           # Next hop or directly connected
-                    "interface": fields[5]      # Interface
-                }
-                routes.append(route_entry)
-    return routes
-
-def parse_gaia_route_output(output):
-    routes = []
-    lines = output.split("\n")
-    for line in lines:
-        if line.startswith("C") or line.startswith("S"):
-            fields = line.split(",")
-            protocol = fields[0].strip()  # Protocol type (C or S)
-            destination = fields[1].split()[1].strip() if "via" in fields[1] else fields[1].strip()
-            via = fields[1].split()[2].rstrip(',') if "via" in fields[1] else "directly"
-
-            interface = next((part.strip() for part in fields if part.startswith("eth")), None)
-            if not interface:  # If no part starts with "eth", then check the last part (just in case).
-                interface = fields[-1].strip() if fields[-1].startswith("eth") else None
-
-            if interface:
-                route_entry = {
-                    "protocol": protocol,
-                    "destination": destination,
-                    "via": via,
-                    "interface": interface
-                }
-                routes.append(route_entry)
+            fields = line.split(",")  # Splitting by comma now
+            if "cost" in line:  # Check if the line contains "cost"
+                protocol = fields[0].split()[0]
+                destination = fields[0].split()[1]
+                via = fields[0].split()[3]
+                interface = fields[1].strip()
             else:
-                print(f"Could not determine interface for line: {line}")
-                
+                fields = line.split()
+                protocol = fields[0]
+                destination = fields[1]
+                via = fields[3]
+                interface = fields[5]
+
+            route_entry = {
+                "protocol": protocol,
+                "destination": destination,
+                "via": via,
+                "interface": interface
+            }
+            routes.append(route_entry)
     return routes
+
 
 
 def expand_vlan_ranges(vlan_list):
