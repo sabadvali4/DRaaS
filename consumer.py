@@ -284,9 +284,14 @@ def main():
                                     gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination, via)
                                     action = "removed"
 
+                                gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                                route_dict = json.loads(gaia_route_info)
+                                combined_data = {"routes": route_dict}
+                                json_data = json.dumps(combined_data, indent=4)
+                                
                                 status_message = "status: success"
                                 output_message = f"Route for {destination} via {via} {action} on Gaia switch {req_switch_ip}."
-                                output = f"{status_message}\n{output_message}"
+                                output = f"{status_message}\n{output_message}\n{json_data}"
 
                                 redis_set(req_id, "completed", output)
                                 task_sts = json.loads(redis_server.get(req_id).decode())["status"]
