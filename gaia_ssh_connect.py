@@ -41,24 +41,13 @@ class SSHConnection:
         except Exception as e:
             print(f"Error occurred while creating VLAN: {e}")
 
-    def create_route(self, destination_network, via=None, gateway=None):
+    def create_route(self, destination_network, gateway):
         try:
-            if via and gateway:
-                # Both via and gateway are present
-                command = f"set static-route {destination_network} nexthop gateway logical {via} on"
-            elif via:
-                # Only via is present
-                command = f"set static-route {destination_network} nexthop gateway logical {via} on"
-            elif gateway:
-                # Only gateway is present
-                command = f"set static-route {destination_network} nexthop gateway address {gateway} on"
-            else:
-                #Neither via nor gateway is present
-                print("Neither via nor gateway provided.")
-                return
+            command = f"set static-route {destination_network} nexthop gateway address {gateway} on"
         
             self.send_shell(command)
             time.sleep(1)
+
             self.send_shell('save config')
             print(f"Route to {destination_network} configured successfully.")
         except Exception as e:
@@ -142,8 +131,6 @@ def parse_gaia_route_output(output):
             routes.append(route_entry)
     return routes
 
-
-
 def expand_vlan_ranges(vlan_list):
     expanded = []
     for item in vlan_list:
@@ -171,18 +158,13 @@ def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection.send_shell('save config')
     connection.close_connection()
 
-def add_gaia_route(ip, user, password, destination_network, via=None, gateway=None):
+def add_gaia_route(ip, user, password, destination_network, gateway):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
     
-    # Call the create_route method with appropriate parameters
-    if via and gateway:
-        connection.create_route(destination_network, via=via, gateway=gateway)
-    elif via:
-        connection.create_route(destination_network, via=via)
-    elif gateway:
-        connection.create_route(destination_network, gateway=gateway)
+    if gateway != None:
+        connection.create_route(destination_network, gateway)
     else:
         print("Neither via nor gateway provided. Route configuration failed.")
     
