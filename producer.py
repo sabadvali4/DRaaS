@@ -19,29 +19,26 @@ get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 update_status_url= settings.url + "/postHealthMonitoring"
 
-# get an instance of the logger object this module will use..
+# this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)
-
-# Check if the systemd.journal module is available
+# Define the time format
+time_format = "%Y-%m-%d %H:%M:%S"
+# Optionally set the logging level
+logger.setLevel(logging.DEBUG)
 try:
     from systemd.journal import JournaldLogHandler
 
-    # instantiate the JournaldLogHandler to hook into systemd
+    # Instantiate the JournaldLogHandler to hook into systemd
     journald_handler = JournaldLogHandler()
 
-    # set a formatter to include the level name
-    journald_handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+    journald_handler.setFormatter(logging.Formatter(fmt=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format))
 
-    # add the journald handler to the current logger
+    # Add the journald handler to the current logger
     logger.addHandler(journald_handler)
 
 except ImportError:
-    # systemd.journal module is not available, use a different logging mechanism
-    logging.basicConfig(level=logging.DEBUG)
-
-# Optionally set the logging level
-logger.setLevel(logging.DEBUG)
-
+    # systemd.journal module is not available, use basic console logging
+    logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
 
 def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()

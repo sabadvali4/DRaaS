@@ -2,7 +2,7 @@ import redis, requests
 import re, json, sys, dotenv
 from time import sleep, time
 from functions import run_command_and_get_json, change_interface_mode
-import glv; from glv import added_vlan, Enabled
+import glv; from glv import added_vlan
 import gaia_ssh_connect
 #import api
 import logging, time
@@ -12,7 +12,6 @@ settings.init()
 
 # Create a Redis server connections.
 redis_server = redis.Redis()
-
 queue_name = "api_req_queue"
 redis_server2 = redis.Redis()
 current_task_que = "current_task_que"
@@ -22,26 +21,24 @@ update_req_url = settings.url + "/SetCommandStatus"
 
 # this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)
-
-# Check if the systemd.journal module is available
+# Define the time format
+time_format = "%Y-%m-%d %H:%M:%S"
+# Optionally set the logging level
+logger.setLevel(logging.DEBUG)
 try:
     from systemd.journal import JournaldLogHandler
 
-    # instantiate the JournaldLogHandler to hook into systemd
+    # Instantiate the JournaldLogHandler to hook into systemd
     journald_handler = JournaldLogHandler()
 
-    # set a formatter to include the level name
-    journald_handler.setFormatter(logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+    journald_handler.setFormatter(logging.Formatter(fmt=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format))
 
-    # add the journald handler to the current logger
+    # Add the journald handler to the current logger
     logger.addHandler(journald_handler)
 
 except ImportError:
     # systemd.journal module is not available, use basic console logging
-    logging.basicConfig(level=logging.DEBUG)
-
-# optionally set the logging level
-logger.setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
 
 # Dictionary to store credentials of switches
 credential_dict = {}
@@ -96,13 +93,6 @@ def main():
     #start_time = time()
     while True:
         #start_time = time()
-        enabled_value = redis_server.get("Enabled")
-
-        if enabled_value and not bool(int(enabled_value.decode())):
-            logger.info("Processing is disabled. Waiting for 'Enabled' to be True.")
-            sleep(5)
-            continue
-
         while True:
             q_len = redis_server.llen(queue_name)
             if q_len > 0:
@@ -111,6 +101,7 @@ def main():
                 #print("Maximum wait time reached. Exiting.")
                 #return  # Exit the program after waiting for the maximum time
             print("Queue is empty. Waiting...")
+            logger.info("Queue is empty. Waiting...." )
             sleep(10)  # Wait for 10 seconds and check the queue again
 
         print(f'Queue length: {q_len}')
@@ -129,12 +120,18 @@ def main():
                 req_interface_name = json_req["interface_name"]
                 req_port_mode = json_req["port_mode"]
                 discovery=json_req["discovery"]
+
+                #switch_status=json_req["switch_status"]
+                destination=json_req["destination"]
+                via=json_req["via"]
+
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
                 else:
                     req_cmd = ""
             else:
                 print("Queue is empty. Waiting...")
+                logger.info("Queue is empty. Waiting...")
 
             task_sts = redis_server.get(req_id)
             if task_sts is None:
@@ -259,21 +256,60 @@ def main():
                         print(credential_dict)
 
                     elif switch_device_type == 'gaia':
-                    # Execute the Gaia-specific logic from gaia_ssh_connect.py
                         try:
-                            gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
-                            gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
-                            interface_dict = json.loads(gaia_interface_info)
-                            route_dict = json.loads(gaia_route_info)
+                            ##VLAN add/remove
+                            if discovery == "0" and req_interface_name and req_vlans:
+                                if req_cmd == "Add vlan":
+                                    gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
+                                    action = "added"
+                                elif req_cmd == "Delete vlan":
+                                    gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
+                                    action = "removed"
 
-                            combined_data = {
-                                    "interfaces": interface_dict, "routes": route_dict}
-                            json_data = json.dumps(combined_data, indent=4)
-                            if discovery == "1":
-
-                                #Update status and output for discovery
                                 status_message = "status: success"
-                                output_message = json_data
+                                output_message = f"VLANs {req_vlans} {action} to interface {req_interface_name} on Gaia switch {req_switch_ip}."
+                                output = f"{status_message}\n{output_message}"
+
+                                redis_set(req_id, "completed", output)
+                                task_sts = json.loads(redis_server.get(req_id).decode())["status"]
+                                send_status_update(req_id, task_sts, output)
+
+                            ##routing add/remove
+                            elif discovery == "0" and destination and via:
+                                if "gateway" in json_req:  # Check if the gateway is provided in the request
+                                    gateway = json_req["gateway"]
+                                else:
+                                    gateway = None  # Default value if gateway is not provided
+
+                                if req_cmd == "Add route":
+                                    gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, via, gateway=gateway)
+                                    action = "added"
+                                elif req_cmd == "Delete route":
+                                    gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination, via, gateway=gateway)
+                                    action = "removed"
+
+                                gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                                route_dict = json.loads(gaia_route_info)
+                                combined_data = {"routes": route_dict}
+                                json_data = json.dumps(combined_data, indent=4)
+
+                                status_message = "status: success"
+                                output_message = f"Route for {destination} via {via} {action} on Gaia switch {req_switch_ip}."
+                                output = f"{status_message}\n{output_message}\n{json_data}"
+
+                                redis_set(req_id, "completed", output)
+                                task_sts = json.loads(redis_server.get(req_id).decode())["status"]
+                                send_status_update(req_id, task_sts, output)
+
+                            if discovery == "1":
+                                gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
+                                gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                                interface_dict = json.loads(gaia_interface_info)
+                                route_dict = json.loads(gaia_route_info)
+                                combined_data = {"interfaces": interface_dict, "routes": route_dict}
+                                json_data = json.dumps(combined_data, indent=4)
+            
+                                status_message = "status: success"
                                 output = json_data
 
                                 redis_set(req_id, "completed", output)
@@ -281,7 +317,22 @@ def main():
                                 send_status_update(req_id, task_sts, output)
 
                         except Exception as error:
-                            print(error)
+                            status_message = "status: failed"
+    
+                            # Adjusting the error message based on the command and including the gateway if available
+                            if req_cmd == "Add route":
+                                output = f"{status_message} Error adding route for {destination} via {via} and gateway {gateway if gateway else 'None'}: {error}"
+                            elif req_cmd == "Delete route":
+                                output = f"{status_message} Error removing route for {destination} via {via} and gateway {gateway if gateway else 'None'}: {error}"
+                            elif req_cmd == "Add vlan":
+                                output = f"{status_message} Error adding VLANs {req_vlans} to interface {req_interface_name}: {error}"
+                            elif req_cmd == "Delete vlan":
+                                output = f"{status_message} Error removing VLANs {req_vlans} from interface {req_interface_name}: {error}"
+                            else:
+                                output = f"{status_message} Error: {error}"
+
+                            send_status_update(req_id, "failed", output)
+               
                 else:
                     print(f"No matching switch found for IP: {req_switch_ip}")
 
