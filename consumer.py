@@ -123,7 +123,6 @@ def main():
 
                 #switch_status=json_req["switch_status"]
                 destination=json_req["destination"]
-                via=json_req["via"]
 
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
@@ -275,11 +274,16 @@ def main():
                                 send_status_update(req_id, task_sts, output)
 
                             ##routing add/remove
-                            elif discovery == "0" and destination and via:
+                            elif discovery == "0" and destination:
                                 if "gateway" in json_req:  # Check if the gateway is provided in the request
                                     gateway = json_req["gateway"]
                                 else:
                                     gateway = None  # Default value if gateway is not provided
+
+                                if "via" in json_req:
+                                    via=json_req["via"]
+                                else:
+                                    via= None
 
                                 if req_cmd == "Add route":
                                     gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, via, gateway=gateway)
