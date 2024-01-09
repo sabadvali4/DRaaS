@@ -45,8 +45,11 @@ class SSHConnection:
         try:
             command = f"set static-route {destination_network} nexthop gateway address {gateway} on"
         
-            self.send_shell(command)
+            output= self.send_shell(command)
             time.sleep(1)
+
+            if "Invalid command" in output:
+                raise Exception("Invalid command while setting static route")
 
             self.send_shell('save config')
             print(f"Route to {destination_network} configured successfully.")

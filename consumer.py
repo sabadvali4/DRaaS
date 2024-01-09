@@ -1,7 +1,7 @@
 import redis, requests
 import re, json, sys, dotenv
 from time import sleep, time
-from functions import run_command_and_get_json, change_interface_mode
+from functions import run_command_and_get_json, change_interface_mode, SSHClient
 import glv; from glv import added_vlan
 import gaia_ssh_connect
 #import api
@@ -164,6 +164,21 @@ def main():
                     if retrieved_user is None:
                         retrieved_user = switch_user
                         retrieved_password = switch_password
+
+                    if (retrieved_user is not None and retrieved_password is not None):
+                        ssh_client = SSHClient(req_switch_ip, retrieved_user, retrieved_password)
+                        # Attempt to establish the SSH connection
+                        connected = ssh_client.try_connect(req_id)
+
+                        if not connected:
+                            # If failed to connect after 5 attempts, send a status update to ServiceNow
+                            error_message = f"Failed to establish SSH connection to {req_switch_ip} after {SSHClient.MAX_RETRIES} attempts."
+                            send_status_update(req_id, "failed", error_message)
+                            # Update the credentials with a "failed" status if not already present
+                            if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
+                                update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+                                continue
+
                     if switch_device_type == 'switch':
                         if (retrieved_user is not None and retrieved_password is not None):
                             # Check if the credentials status is 'failed' and the last attempt was 5 minutes ago
