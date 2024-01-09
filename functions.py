@@ -55,7 +55,6 @@ class SSHClient:
         else:
             raise ValueError("SSH connection is not established.")
 
-#SSH connection function
 class ssh_new:
     shell = None
     client = None
