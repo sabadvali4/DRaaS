@@ -2,6 +2,7 @@ import time, sys, threading; from unittest import result; import requests, json,
 from datetime import datetime; import paramiko, configparser, confparser; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
+from consumer import send_status_update
 import glv; from glv import added_vlan  # Import the added_vlan list
 load_dotenv()
 from time import sleep
@@ -11,6 +12,7 @@ config.read('./config/parameters.ini')
 
 #SSH connection function
 class SSHClient:
+    MAX_RETRIES = 5
     def __init__(self, address, username, password):
         print("Connecting to server on IP", str(address) + ".")
         self.connection_params = {
@@ -25,6 +27,20 @@ class SSHClient:
         self.connection = ConnectHandler(**self.connection_params)
         self.connection.enable()
 
+    def try_connect(self,req_id=None):
+        attempts = 0
+        while attempts < self.MAX_RETRIES:
+            try:
+                self.connection = ConnectHandler(**self.connection_params)
+                self.connection.enable()
+                return True
+            except Exception as e:
+                print(f"Failed to connect. Attempt {attempts+1}/{self.MAX_RETRIES}. Error: {e}")
+                send_status_update(req_id, "Active", f"Attempt {attempts+1}/{self.MAX_RETRIES} failed.")
+                time.sleep(10)  # Wait for 10 seconds before retrying
+                attempts += 1
+        return False
+
     def close_connection(self):
         if self.connection:
             self.connection.disconnect()
@@ -38,6 +54,7 @@ class SSHClient:
             return output
         else:
             raise ValueError("SSH connection is not established.")
+
 #SSH connection function
 class ssh_new:
     shell = None
