@@ -5,7 +5,7 @@ from dotenv import load_dotenv; from socket import *
 from consumer import send_status_update
 import glv; from glv import added_vlan  # Import the added_vlan list
 load_dotenv()
-from time import sleep
+from time import sleep, time
 config = configparser.ConfigParser()
 config.sections()
 config.read('./config/parameters.ini')
@@ -37,7 +37,7 @@ class SSHClient:
             except Exception as e:
                 print(f"Failed to connect. Attempt {attempts+1}/{self.MAX_RETRIES}. Error: {e}")
                 send_status_update(req_id, "Active", f"Attempt {attempts+1}/{self.MAX_RETRIES} failed.")
-                time.sleep(10)  # Wait for 10 seconds before retrying
+                sleep(10)  # Wait for 10 seconds before retrying
                 attempts += 1
         return False
 
