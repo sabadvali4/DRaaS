@@ -32,7 +32,6 @@ class SSHClient:
         while attempts < self.MAX_RETRIES:
             try:
                 self.connection = ConnectHandler(**self.connection_params)
-                self.connection.enable()
                 return True
             except Exception as e:
                 print(f"Failed to connect. Attempt {attempts+1}/{self.MAX_RETRIES}. Error: {e}")
