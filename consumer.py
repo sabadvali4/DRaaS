@@ -176,6 +176,7 @@ def main():
                             send_status_update(req_id, "failed", error_message)
                             # Update the credentials with a "failed" status if not already present
                             continue
+                        ssh_client.close_connection()
 
                     if switch_device_type == 'switch':
                         if (retrieved_user is not None and retrieved_password is not None):
