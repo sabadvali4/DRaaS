@@ -1,7 +1,7 @@
 import redis, requests
 import re, json, sys, dotenv
 from time import sleep, time
-from functions import run_command_and_get_json, change_interface_mode
+from functions import *
 import glv; from glv import added_vlan
 import gaia_ssh_connect
 #import api
@@ -123,7 +123,7 @@ def main():
 
                 #switch_status=json_req["switch_status"]
                 destination=json_req["destination"]
-                via=json_req["via"]
+                gateway=json_req["gateway"]
 
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
@@ -164,6 +164,19 @@ def main():
                     if retrieved_user is None:
                         retrieved_user = switch_user
                         retrieved_password = switch_password
+
+                    if (retrieved_user is not None and retrieved_password is not None):
+                        ssh_client = SSHClient(req_switch_ip, retrieved_user, retrieved_password)
+                        # Attempt to establish the SSH connection
+                        connected = ssh_client.try_connect(req_id)
+
+                        if not connected:
+                            # If failed to connect after 5 attempts, send a status update to ServiceNow
+                            error_message = f"Failed to establish SSH connection to {req_switch_ip} after {SSHClient.MAX_RETRIES} attempts."
+                            send_status_update(req_id, "failed", error_message)
+                            # Update the credentials with a "failed" status if not already present
+                            continue
+
                     if switch_device_type == 'switch':
                         if (retrieved_user is not None and retrieved_password is not None):
                             # Check if the credentials status is 'failed' and the last attempt was 5 minutes ago
@@ -275,17 +288,12 @@ def main():
                                 send_status_update(req_id, task_sts, output)
 
                             ##routing add/remove
-                            elif discovery == "0" and destination and via:
-                                if "gateway" in json_req:  # Check if the gateway is provided in the request
-                                    gateway = json_req["gateway"]
-                                else:
-                                    gateway = None  # Default value if gateway is not provided
-
+                            elif discovery == "0" and destination and gateway:
                                 if req_cmd == "Add route":
-                                    gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, via, gateway=gateway)
+                                    gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
                                     action = "added"
                                 elif req_cmd == "Delete route":
-                                    gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination, via, gateway=gateway)
+                                    gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
                                     action = "removed"
 
                                 gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
@@ -294,7 +302,7 @@ def main():
                                 json_data = json.dumps(combined_data, indent=4)
 
                                 status_message = "status: success"
-                                output_message = f"Route for {destination} via {via} {action} on Gaia switch {req_switch_ip}."
+                                output_message = f"Route for {destination} {action} on Gaia switch {req_switch_ip}."
                                 output = f"{status_message}\n{output_message}\n{json_data}"
 
                                 redis_set(req_id, "completed", output)
@@ -321,9 +329,9 @@ def main():
     
                             # Adjusting the error message based on the command and including the gateway if available
                             if req_cmd == "Add route":
-                                output = f"{status_message} Error adding route for {destination} via {via} and gateway {gateway if gateway else 'None'}: {error}"
+                                output = f"{status_message} Error adding route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
                             elif req_cmd == "Delete route":
-                                output = f"{status_message} Error removing route for {destination} via {via} and gateway {gateway if gateway else 'None'}: {error}"
+                                output = f"{status_message} Error removing route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
                             elif req_cmd == "Add vlan":
                                 output = f"{status_message} Error adding VLANs {req_vlans} to interface {req_interface_name}: {error}"
                             elif req_cmd == "Delete vlan":
