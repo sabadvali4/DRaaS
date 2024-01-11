@@ -176,6 +176,7 @@ def main():
                             send_status_update(req_id, "failed", error_message)
                             # Update the credentials with a "failed" status if not already present
                             continue
+                        ssh_client.close_connection()
 
                     if switch_device_type == 'switch':
                         if (retrieved_user is not None and retrieved_password is not None):
@@ -279,10 +280,15 @@ def main():
                                     gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "removed"
 
+                                gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
+                                interface_dict = json.loads(gaia_interface_info)
+                                combined_data = {"interfaces": interface_dict}
+                                json_data = json.dumps(combined_data, indent=4)
+
                                 status_message = "status: success"
                                 output_message = f"VLANs {req_vlans} {action} to interface {req_interface_name} on Gaia switch {req_switch_ip}."
-                                output = f"{status_message}\n{output_message}"
-
+                                output = f"{status_message}\n{output_message}\n{json_data}"
+                    
                                 redis_set(req_id, "completed", output)
                                 task_sts = json.loads(redis_server.get(req_id).decode())["status"]
                                 send_status_update(req_id, task_sts, output)
