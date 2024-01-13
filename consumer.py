@@ -93,10 +93,8 @@ def get_credentials(ip):
 def get_id_status(ID):
     payload = json.dumps({"command_id": f"{ID}"})
     commands = requests.post(get_id_url, data=payload, headers={'Content-Type': 'application/json'},
-                           auth=(settings.username, settings.password))
-    res = commands.json()
-    print (f"Got from commands from API: {res['result']}")
-    return (res)
+                           auth=(settings.username, settings.password)).json()
+    return commands['result']
 
 # Main function
 def main():
@@ -136,8 +134,15 @@ def main():
                 destination=json_req["destination"]
                 gateway=json_req["gateway"]
 
-                print("record_id: ")
-                print(f"record_id: {get_id_status(req_id)}")
+                api_status = get_id_status(req_id)
+                api_dr_status = api_status[0]['dr_status']
+                print(f"api_status: {api_dr_status}")
+                if 'failed' in api_dr_status:
+                  redis_set(req_id, "failed")
+                  continue
+
+
+
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
                 else:
