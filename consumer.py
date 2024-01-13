@@ -141,8 +141,6 @@ def main():
                   redis_set(req_id, "failed")
                   continue
 
-
-
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
                 else:
