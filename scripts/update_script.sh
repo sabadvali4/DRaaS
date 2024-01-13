@@ -3,7 +3,7 @@
 DATE=$(date "+%Y%m%d%H%M")
 
 # File to store project directory and venv flag
-config_file="config/draas_config.ini"
+config_file="../config/draas_config.ini"
 
 # Log file path
 log_file="/var/log/update_script.log"
