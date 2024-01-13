@@ -12,17 +12,18 @@ settings.init()
 
 # Create a Redis server connections.
 redis_server = redis.Redis()
-queue_name = "api_req_queue"
-redis_server2 = redis.Redis()
+#queue_name = "api_req_queue"
+queue_name = glv.queue_name
 current_task_que = "current_task_que"
 switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
+get_id_url = settings.url + "/getCommandByID"
 
 # this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)
 # Define the time format
-time_format = "%Y-%m-%d %H:%M:%S"
+time_format = glv.time_format
 # Optionally set the logging level
 logger.setLevel(logging.DEBUG)
 try:
@@ -57,7 +58,7 @@ def redis_set(KEY="", VALUE="", OUTPUT=""):
         logger.error('Error in redis_set: %s', str(e))
 
 # Function to get the next request from the Redis queue
-def redis_queue_get():
+def redis_queue_get(queue_name):
     try:
         req = redis_server.lpop(queue_name)
         print(req)
@@ -72,7 +73,9 @@ def redis_queue_get():
     
 # Function to send a status or update to ServiceNow API
 def send_status_update(ID, STATUS, OUTPUT):
-    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{STATUS}", "command_output": f"{OUTPUT}"})
+    status = STATUS.lower()
+    print(f"ID: {ID}, STATUS: {status}, OUTPUT: {OUTPUT}")
+    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{status}", "command_output": f"{OUTPUT}"})
     answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
                            auth=(settings.username, settings.password))
     
@@ -86,6 +89,15 @@ def get_credentials(ip):
     credential = credential_dict.get(ip, {})
     return (credential["user"], credential["pass"]) if credential.get("status") == "success" else (None, None)
 
+# Function to send a status or update to ServiceNow API
+def get_id_status(ID):
+    payload = json.dumps({"command_id": f"{ID}"})
+    commands = requests.post(get_id_url, data=payload, headers={'Content-Type': 'application/json'},
+                           auth=(settings.username, settings.password))
+    res = commands.json()
+    print (f"Got from commands from API: {res['result']}")
+    return (res)
+
 # Main function
 def main():
     glv.added_vlan  # Declare that we are using the global variable
@@ -96,6 +108,7 @@ def main():
         while True:
             q_len = redis_server.llen(queue_name)
             if q_len > 0:
+                rqst = redis_queue_get(queue_name)
                 break
             #if time() - start_time > max_wait_time:
                 #print("Maximum wait time reached. Exiting.")
@@ -105,12 +118,10 @@ def main():
             sleep(10)  # Wait for 10 seconds and check the queue again
 
         print(f'Queue length: {q_len}')
-        requests_list = redis_server.lrange(queue_name, 0, q_len)
+        # requests_list = redis_server.lrange(queue_name, 0, q_len)
 
-        for req in requests_list:
-            next_req = redis_queue_get()
-            if next_req is not None:
-                fix_quotes = re.sub("'", "\"", next_req)
+        if rqst is not None:
+                fix_quotes = re.sub("'", "\"", rqst)
                 no_none = re.sub("None", "\"\"", fix_quotes)
                 json_req = json.loads(no_none)
                 req_id = json_req["record_id"]
@@ -125,21 +136,24 @@ def main():
                 destination=json_req["destination"]
                 gateway=json_req["gateway"]
 
+                print("record_id: ")
+                print(f"record_id: {get_id_status(req_id)}")
                 if json_req["command"] != "":
                     req_cmd = json_req["command"]
                 else:
                     req_cmd = ""
-            else:
+        else:
                 print("Queue is empty. Waiting...")
                 logger.info("Queue is empty. Waiting...")
 
-            task_sts = redis_server.get(req_id)
-            if task_sts is None:
+        task_status = redis_server.get(req_id).decode()
+        if task_status is None:
                 redis_set(req_id, "active")
-                task_sts = redis_server.get(req_id)
+                task_status = redis_server.get(req_id)
 
-            if "active" in str(task_sts):
-                redis_server2.set(name="current_task", value=json.dumps({"id": req_id, "switch_ip": req_switch_ip, "command": req_cmd}))
+        if "active" in task_status:
+		#TODO FIX glv QUEUE NAME
+                redis_server.set(name="current_task", value=json.dumps({"id": req_id, "switch_ip": req_switch_ip, "command": req_cmd}))
 
                 switch_user = None
                 switch_password = None
@@ -154,7 +168,7 @@ def main():
                         switch_device_type = switch_details['result'][i]['device_type']
                         break
 
-                print(switch_device_type)
+                print(f"Switch type: {switch_device_type}")
 
                 if switch_device_type is not None:
   
@@ -171,7 +185,7 @@ def main():
                         connected = ssh_client.try_connect(req_id)
 
                         if not connected:
-                            # If failed to connect after 5 attempts, send a status update to ServiceNow
+                            # If failed to connect after MAX attempts, send a status update to ServiceNow
                             error_message = f"Failed to establish SSH connection to {req_switch_ip} after {SSHClient.MAX_RETRIES} attempts."
                             send_status_update(req_id, "failed", error_message)
                             # Update the credentials with a "failed" status if not already present
@@ -222,8 +236,8 @@ def main():
                                         else:
                                             output = f"{status_message}\n{output}"
                                         redis_set(req_id, "completed", output)
-                                        task_sts = json.loads(redis_server.get(req_id).decode())["status"]
-                                        send_status_update(req_id, task_sts, output)
+                                        task_status = json.loads(redis_server.get(req_id).decode())["status"]
+                                        send_status_update(req_id, task_status, output)
                                         update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
 
                             else:
@@ -260,12 +274,12 @@ def main():
                                     else:
                                         output = f"{status_message}\n{output}"
                                     redis_set(req_id, "completed", output)
-                                    task_sts = json.loads(redis_server.get(req_id).decode())["status"]
-                                    send_status_update(req_id, task_sts, output)
+                                    task_status = json.loads(redis_server.get(req_id).decode())["status"]
+                                    send_status_update(req_id, task_status, output)
                                     update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
 
                         # When a task is completed, remove the "current_task" key
-                        redis_server2.delete("current_task")
+                        redis_server.delete("current_task")
 
                         print(credential_dict)
 
@@ -290,8 +304,8 @@ def main():
                                 output = f"{status_message}\n{output_message}\n{json_data}"
                     
                                 redis_set(req_id, "completed", output)
-                                task_sts = json.loads(redis_server.get(req_id).decode())["status"]
-                                send_status_update(req_id, task_sts, output)
+                                task_status = json.loads(redis_server.get(req_id).decode())["status"]
+                                send_status_update(req_id, task_status, output)
 
                             ##routing add/remove
                             elif discovery == "0" and destination and gateway:
@@ -312,8 +326,8 @@ def main():
                                 output = f"{status_message}\n{output_message}\n{json_data}"
 
                                 redis_set(req_id, "completed", output)
-                                task_sts = json.loads(redis_server.get(req_id).decode())["status"]
-                                send_status_update(req_id, task_sts, output)
+                                task_status = json.loads(redis_server.get(req_id).decode())["status"]
+                                send_status_update(req_id, task_status, output)
 
                             if discovery == "1":
                                 gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
@@ -327,8 +341,8 @@ def main():
                                 output = json_data
 
                                 redis_set(req_id, "completed", output)
-                                task_sts = json.loads(redis_server.get(req_id).decode())["status"]
-                                send_status_update(req_id, task_sts, output)
+                                task_status = json.loads(redis_server.get(req_id).decode())["status"]
+                                send_status_update(req_id, task_status, output)
 
                         except Exception as error:
                             status_message = "status: failed"
@@ -349,8 +363,9 @@ def main():
                
                 else:
                     print(f"No matching switch found for IP: {req_switch_ip}")
+                    send_status_update(req_id, "failed", "Could not find switch for IP")
 
-            elif "completed" in str(task_sts):
+        elif "completed" in str(task_status):
                 continue
 
         sleep(10)

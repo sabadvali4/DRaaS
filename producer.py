@@ -13,7 +13,8 @@ redis_server = redis.Redis(host='localhost', port=6379, db=0)
 # Set the value of Enabled to Redis when the script starts
 redis_server.set("Enabled", int(glv.Enabled))
 
-queue_name = "api_req_queue"
+# queue_name = "api_req_queue"
+queue_name = glv.queue_name
 switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
@@ -22,7 +23,7 @@ update_status_url= settings.url + "/postHealthMonitoring"
 # this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)
 # Define the time format
-time_format = "%Y-%m-%d %H:%M:%S"
+time_format = glv.time_format
 # Optionally set the logging level
 logger.setLevel(logging.DEBUG)
 try:
@@ -41,10 +42,10 @@ except ImportError:
     logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
 
 def get_requests():
+
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
     print (f"Got from commands from API: {commands['result']}")
     return commands['result']
-
 
 def send_status_update(ID, STATUS, OUTPUT):
     try:
@@ -130,7 +131,7 @@ if __name__ == "__main__":
                 redis_queue_push(task)
 
 
-        items_in_progress = sum(1 for task in tasks if task['dr_status'] == 'active')
+        items_in_progress = redis_server.llen(queue_name)
         items_failed = sum(1 for task in tasks if task['dr_status'] == 'failed')
         # Format timestamp as HH:MM:SS
         Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')

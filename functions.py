@@ -12,7 +12,7 @@ config.read('./config/parameters.ini')
 
 #SSH connection function
 class SSHClient:
-    MAX_RETRIES = 5
+    MAX_RETRIES = 3
     def __init__(self, address, username, password):
         print("Connecting to server on IP", str(address) + ".")
         self.connection_params = {
