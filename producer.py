@@ -8,7 +8,7 @@ import glv; from glv import Enabled
 import settings
 settings.init()
 
-redis_server = redis.Redis()
+redis_server = redis.Redis(host='localhost', port=6379, db=0)
 
 # Set the value of Enabled to Redis when the script starts
 redis_server.set("Enabled", int(glv.Enabled))
