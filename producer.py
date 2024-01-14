@@ -52,10 +52,12 @@ def get_requests():
 
 def send_status_update(ID, STATUS, OUTPUT):
     try:
+        status = STATUS.lower()
+        print(f"producer ---> ID: {ID}, STATUS: {status}, OUTPUT: {OUTPUT}")
         payload = json.dumps(
             {
                 "command_id": f"{ID}",
-                "command_status": f"{STATUS}",
+                "command_status": f"{status}",
                 "command_output": f"{OUTPUT}"
             })
         # print(payload)
