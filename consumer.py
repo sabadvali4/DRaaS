@@ -12,8 +12,8 @@ settings.init()
 
 # Create a Redis server connections.
 redis_server = redis.Redis()
-#queue_name = "api_req_queue"
 queue_name = glv.queue_name
+incompleted_tasks = glv.incompleted_tasks
 current_task_que = "current_task_que"
 switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
@@ -76,9 +76,17 @@ def send_status_update(ID, STATUS, OUTPUT):
     status = STATUS.lower()
     print(f"ID: {ID}, STATUS: {status}, OUTPUT: {OUTPUT}")
     payload = json.dumps({"command_id": f"{ID}", "command_status": f"{status}", "command_output": f"{OUTPUT}"})
-    answer = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
+    response = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
                            auth=(settings.username, settings.password))
-    
+    valid_response_code(response.status_code)
+
+
+def valid_response_code(statusCode):
+    if statusCode != 200:
+        print("Api is not accesble. StatusCode is:", statusCode)
+        logger.error('Error in updating API')
+        redis_server.rpush(incompleted_tasks, str(task))
+
 # Function to update the credentials dictionary with the status
 def update_credential_dict(ip, username, password, status):
     timestamp = time()
@@ -93,7 +101,9 @@ def get_credentials(ip):
 def get_id_status(ID):
     payload = json.dumps({"command_id": f"{ID}"})
     commands = requests.post(get_id_url, data=payload, headers={'Content-Type': 'application/json'},
-                           auth=(settings.username, settings.password)).json()
+                           auth=(settings.username, settings.password))
+    valid_response_code(commands.status_code)
+    commands = commands.json()
     return commands['result']
 
 # Main function
@@ -116,8 +126,6 @@ def main():
             sleep(10)  # Wait for 10 seconds and check the queue again
 
         print(f'Queue length: {q_len}')
-        # requests_list = redis_server.lrange(queue_name, 0, q_len)
-
         if rqst is not None:
                 fix_quotes = re.sub("'", "\"", rqst)
                 no_none = re.sub("None", "\"\"", fix_quotes)
@@ -136,6 +144,7 @@ def main():
 
                 api_status = get_id_status(req_id)
                 api_dr_status = api_status[0]['dr_status']
+
                 print(f"api_status: {api_dr_status}")
                 if 'failed' in api_dr_status:
                   redis_set(req_id, "failed")
@@ -162,6 +171,7 @@ def main():
                 switch_password = None
                 switch_device_type = None
                 switch_details = requests.post(switch_info_url, data=f"{{ 'switch_id': '{req_switch}' }}",headers={'Content-Type': 'application/json'},auth=(settings.username, settings.password)).json()
+                
                 print(switch_details)
                 
                 for i in range(len(switch_details['result'])):
@@ -191,7 +201,6 @@ def main():
                             # If failed to connect after MAX attempts, send a status update to ServiceNow
                             error_message = f"Failed to establish SSH connection to {req_switch_ip} after {SSHClient.MAX_RETRIES} attempts."
                             send_status_update(req_id, "failed", error_message)
-                            # Update the credentials with a "failed" status if not already present
                             continue
                         ssh_client.close_connection()
 

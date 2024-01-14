@@ -4,6 +4,7 @@ import time; from time import *
 import time as my_time
 import requests; import re; import json; import logging
 from datetime import datetime
+from consumer import valid_response_code
 import glv; from glv import Enabled
 import settings
 settings.init()
@@ -15,6 +16,9 @@ redis_server.set("Enabled", int(glv.Enabled))
 
 # queue_name = "api_req_queue"
 queue_name = glv.queue_name
+failed_tasks=glv.failed_tasks
+completed_tasks=glv.completed_tasks
+incompleted_tasks = glv.incompleted_tasks
 switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
@@ -42,7 +46,6 @@ except ImportError:
     logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
 
 def get_requests():
-
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
     print (f"Got from commands from API: {commands['result']}")
     return commands['result']
@@ -62,8 +65,7 @@ def send_status_update(ID, STATUS, OUTPUT):
     except Exception as e:
         logger.error('Error in send_status_update: %s', str(e))
 
-
-def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, items_failed,Timestamp):
+def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, items_failed, items_incomplete, Timestamp):
     try:
         payload = json.dumps(
             {
@@ -71,35 +73,49 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
                 "items_in_queue": items_in_queue,
                 "items_in_process": items_in_process,
                 "items_failed": items_failed,
+                "items_incompleted": items_incomplete,
                 "timestamp": Timestamp
             })
         print(payload)
         answer = requests.post(update_status_url, data=payload,
-                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
-
+                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password))
+        valid_response_code(answer.status_code)
+        answer = answer.json()
     except Exception as e:
         logger.error('Error in send_health_monitoring_update: %s', str(e))
-
 
 def redis_queue_push(task):
     record_id=task["record_id"]
     print(f"record_id: {record_id}")
     try:
             if bool(re.search('(active|failed)', task["dr_status"])):
-                job_status = redis_server.get(task["record_id"]).decode()
-                print(job_status)
+                print(task["record_id"])
+                job_status = redis_server.get(task["record_id"])
+                print("job_status: ",job_status)
                 print("recieved task:",task)
 
                 if job_status is not None:
+                    job_status=job_status.decode()
+                    #Completed task
+                    #TODO Check competed
                     if "completed" in job_status:
                         print("completed")
-                  
                         output = re.sub("      ", "\n", job_status)
-                        print("completed1")
                         send_status_update(task["record_id"], job_status, output)
+                        redis_server.rpush(completed_tasks, str(task))
+
+                    #Active task
                     elif "active" in job_status:
                         print(f"Job status is {job_status} waiting to be executed")
+                        redis_server.rpush(queue_name, str(task))
+
+                    #failed task
+                    elif "failed" in job_status:
+                        print("Task is in failed status.")
+                        redis_server.rpush(failed_tasks, str(task))
+
                 else:
+                     #TODO when job is none?
                      print("else 11 {job_status}")
                      redis_server.rpush(queue_name, str(task))
                      print(f"else 12 {job_status}")
@@ -130,14 +146,11 @@ if __name__ == "__main__":
                 # Push task to the Redis queue
                 redis_queue_push(task)
 
-
         items_in_progress = redis_server.llen(queue_name)
-        items_failed = sum(1 for task in tasks if task['dr_status'] == 'failed')
-        # Format timestamp as HH:MM:SS
+        items_failed = redis_server.llen(failed_tasks)
+        items_incomplete = redis_server.llen(incompleted_tasks)
         Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')
-        print(f"{settings.mid_server}, {len(tasks)} , {items_in_progress}, {items_failed} ,{Timestamp}")
-        # send_health_monitoring_update(settings.mid_server, len(tasks) , items_in_progress, items_failed ,Timestamp)
-        
-        #### redis_queue_push(tasks)
-        # Sleep for 10 seconds before the next iteration
+
+        print(f"{settings.mid_server}, {len(tasks)} , {items_in_progress}, {items_failed} ,{items_incomplete} ,{Timestamp}")
+        send_health_monitoring_update(settings.mid_server, len(tasks) , items_in_progress, items_failed, items_incomplete ,Timestamp)
         sleep(10)
