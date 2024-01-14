@@ -78,9 +78,7 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
             })
         print(payload)
         answer = requests.post(update_status_url, data=payload,
-                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password))
-        valid_response_code(answer.status_code)
-        answer = answer.json()
+                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
     except Exception as e:
         logger.error('Error in send_health_monitoring_update: %s', str(e))
 
@@ -95,22 +93,22 @@ def redis_queue_push(task):
                 print("recieved task:",task)
 
                 if job_status is not None:
-                    job_status=job_status.decode()
+                    job_status=json.loads(job_status.decode())
                     #Completed task
                     #TODO Check competed
-                    if "completed" in job_status:
+                    if "completed" in job_status["status"]:
                         print("completed")
-                        output = re.sub("      ", "\n", job_status)
-                        send_status_update(task["record_id"], job_status, output)
+                        output = re.sub("      ", "\n", job_status["output"])
+                        send_status_update(task["record_id"], job_status["status"], output)
                         redis_server.rpush(completed_tasks, str(task))
 
                     #Active task
-                    elif "active" in job_status:
+                    elif "active" in job_status["status"]:
                         print(f"Job status is {job_status} waiting to be executed")
                         redis_server.rpush(queue_name, str(task))
 
                     #failed task
-                    elif "failed" in job_status:
+                    elif "failed" in job_status["status"]:
                         print("Task is in failed status.")
                         redis_server.rpush(failed_tasks, str(task))
 

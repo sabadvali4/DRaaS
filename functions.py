@@ -2,7 +2,6 @@ import time, sys, threading; from unittest import result; import requests, json,
 from datetime import datetime; import paramiko, configparser, confparser; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
-from consumer import send_status_update
 import glv; from glv import added_vlan  # Import the added_vlan list
 load_dotenv()
 from time import sleep, time
@@ -28,6 +27,7 @@ class SSHClient:
         self.connection.enable()
 
     def try_connect(self,req_id=None):
+        from consumer import send_status_update
         attempts = 0
         while attempts < self.MAX_RETRIES:
             try:

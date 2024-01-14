@@ -73,9 +73,9 @@ def redis_queue_get(queue_name):
     
 # Function to send a status or update to ServiceNow API
 def send_status_update(ID, STATUS, OUTPUT):
-    status = STATUS.lower()
-    print(f"ID: {ID}, STATUS: {status}, OUTPUT: {OUTPUT}")
-    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{status}", "command_output": f"{OUTPUT}"})
+    #status = STATUS.lower()
+    print(f"ID: {ID}, STATUS: {STATUS}, OUTPUT: {OUTPUT}")
+    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{STATUS}", "command_output": f"{OUTPUT}"})
     response = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
                            auth=(settings.username, settings.password))
     valid_response_code(response.status_code, ID)
