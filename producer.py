@@ -83,44 +83,48 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
         logger.error('Error in send_health_monitoring_update: %s', str(e))
 
 def redis_queue_push(task):
-    record_id=task["record_id"]
+    record_id = task["record_id"]
     print(f"record_id: {record_id}")
     try:
-            if bool(re.search('(active|failed)', task["dr_status"])):
-                print(task["record_id"])
-                job_status = redis_server.get(task["record_id"])
-                print("job_status: ",job_status)
-                print("recieved task:",task)
+        if bool(re.search('(active|failed)', task["dr_status"])):
+            print(task["record_id"])
+            job_status = redis_server.get(task["record_id"])
 
-                if job_status is not None:
-                    job_status=json.loads(job_status.decode())
-                    #Completed task
-                    #TODO Check competed
+            if job_status is not None and job_status.strip():
+                try:
+                    job_status = json.loads(job_status.decode())
+                except json.JSONDecodeError as json_error:
+                    logger.error('Error decoding JSON: %s', str(json_error))
+                    job_status = None
+
+                if job_status:
+                    print(job_status)
+                    # Completed task
+                    # TODO Check completed
                     if "completed" in job_status["status"]:
                         print("completed")
                         output = re.sub("      ", "\n", job_status["output"])
                         send_status_update(task["record_id"], job_status["status"], output)
                         redis_server.rpush(completed_tasks, str(task))
 
-                    #Active task
+                    # Active task
                     elif "active" in job_status["status"]:
                         print(f"Job status is {job_status} waiting to be executed")
                         redis_server.rpush(queue_name, str(task))
 
-                    #failed task
+                    # Failed task
                     elif "failed" in job_status["status"]:
                         print("Task is in failed status.")
                         redis_server.rpush(failed_tasks, str(task))
-
                 else:
-                     #TODO when job is none?
-                     print("else 11 {job_status}")
-                     redis_server.rpush(queue_name, str(task))
-                     print(f"else 12 {job_status}")
-                     redis_server.set(record_id, "active")
-                     print("else 13 {job_status}")
-                     logger.info('Added %s to queue', task["record_id"])
-                     print(f'added {task["record_id"]} to queue')
+                    # TODO when job is none?
+                    print("else 11 {job_status}")
+                    redis_server.rpush(queue_name, str(task))
+                    print(f"else 12 {job_status}")
+                    redis_server.set(record_id, "active")
+                    print("else 13 {job_status}")
+                    logger.info('Added %s to queue', task["record_id"])
+                    print(f'added {task["record_id"]} to queue')
 
     except Exception as e:
         logger.error('Error in redis_queue_push: %s', str(e))
