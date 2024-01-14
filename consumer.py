@@ -78,14 +78,14 @@ def send_status_update(ID, STATUS, OUTPUT):
     payload = json.dumps({"command_id": f"{ID}", "command_status": f"{status}", "command_output": f"{OUTPUT}"})
     response = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
                            auth=(settings.username, settings.password))
-    valid_response_code(response.status_code)
+    valid_response_code(response.status_code, ID)
 
 
-def valid_response_code(statusCode):
+def valid_response_code(statusCode,ID):
     if statusCode != 200:
         print("Api is not accesble. StatusCode is:", statusCode)
         logger.error('Error in updating API')
-        redis_server.rpush(incompleted_tasks, str(task))
+        redis_server.rpush(incompleted_tasks, ID)
 
 # Function to update the credentials dictionary with the status
 def update_credential_dict(ip, username, password, status):
@@ -102,7 +102,7 @@ def get_id_status(ID):
     payload = json.dumps({"command_id": f"{ID}"})
     commands = requests.post(get_id_url, data=payload, headers={'Content-Type': 'application/json'},
                            auth=(settings.username, settings.password))
-    valid_response_code(commands.status_code)
+    valid_response_code(commands.status_code, ID)
     commands = commands.json()
     return commands['result']
 
