@@ -75,7 +75,7 @@ def redis_queue_get(queue_name):
 def send_status_update(ID, STATUS, OUTPUT):
     #status = STATUS.lower()
     print(f"ID: {ID}, STATUS: {STATUS}, OUTPUT: {OUTPUT}")
-    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{STATUS}", "command_output": f"{OUTPUT}"})
+    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{STA}", "command_output": f"{OUTPUT}"})
     response = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
                            auth=(settings.username, settings.password))
     valid_response_code(response.status_code, ID)
