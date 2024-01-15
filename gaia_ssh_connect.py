@@ -153,12 +153,19 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan_list):
     connection.create_vlan(physical_interface, expanded_vlans)
     connection.close_connection()
 
-def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
+def remove_gaia_vlan(ip, user, password , physical_interface, vlan_list):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
-    connection.send_shell(f'delete interface {physical_interface} vlan {vlan_id}')
-    connection.send_shell('save config')
+
+    expanded_vlans = expand_vlan_ranges(vlan_list)
+    for vlan_id in expanded_vlans:
+        connection.send_shell(f'delete interface {physical_interface} vlan {vlan_id}')
+        time.sleep(1)
+        connection.send_shell('save config')
+        time.sleep(2)
+        print(f"VLAN {vlan_id} deleted successfully from interface {physical_interface}.")
+    
     connection.close_connection()
 
 def add_gaia_route(ip, user, password, destination_network, gateway):

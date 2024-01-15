@@ -321,11 +321,11 @@ def main():
 
                             ##routing add/remove
                             elif discovery == "0" and destination and gateway:
-                                if req_cmd == "Add route":
+                                if req_cmd.lower() == "add route":
                                     gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
                                     action = "added"
-                                elif req_cmd == "Delete route":
-                                    gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
+                                elif req_cmd.lower() == "delete route":
+                                    gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination)
                                     action = "removed"
 
                                 gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
