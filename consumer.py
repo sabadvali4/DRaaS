@@ -299,10 +299,10 @@ def main():
                         try:
                             ##VLAN add/remove
                             if discovery == "0" and req_interface_name and req_vlans:
-                                if req_cmd == "Add vlan":
+                                if req_cmd.lower() == "add vlan":
                                     gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "added"
-                                elif req_cmd == "Delete vlan":
+                                elif req_cmd.lower() == "delete vlan":
                                     gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "removed"
 
