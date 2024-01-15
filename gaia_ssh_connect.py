@@ -35,9 +35,12 @@ class SSHConnection:
                 command = f"add interface {physical_interface} vlan {vlan_id}"
                 self.send_shell(command)
                 time.sleep(1)
-                self.send_shell('save config')
-                time.sleep(2)
                 print(f"VLAN {vlan_id} added successfully to interface {physical_interface}.")
+
+            command = f"save config"
+            self.send_shell(command)
+            time.sleep(1)
+
         except Exception as e:
             print(f"Error occurred while creating VLAN: {e}")
 
@@ -51,7 +54,9 @@ class SSHConnection:
             if "Invalid command" in output:
                 raise Exception("Invalid command while setting static route")
 
-            self.send_shell('save config')
+            command = f"save config"
+            self.send_shell(command)
+            time.sleep(1)
             print(f"Route to {destination_network} configured successfully.")
         except Exception as e:
             print(f"Error occurred while configuring route: {e}")
@@ -148,7 +153,11 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan_list):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
-    
+
+    if isinstance(vlan_list, int):
+        # If a single VLAN ID is provided, convert it to a list
+        vlan_list = [vlan_list]
+
     expanded_vlans = expand_vlan_ranges(vlan_list)
     connection.create_vlan(physical_interface, expanded_vlans)
     connection.close_connection()
@@ -158,14 +167,17 @@ def remove_gaia_vlan(ip, user, password , physical_interface, vlan_list):
     connection.open_shell()
     time.sleep(1)
 
+    if isinstance(vlan_list, int):
+        # If a single VLAN ID is provided, convert it to a list
+        vlan_list = [vlan_list]
+
     expanded_vlans = expand_vlan_ranges(vlan_list)
     for vlan_id in expanded_vlans:
         connection.send_shell(f'delete interface {physical_interface} vlan {vlan_id}')
         time.sleep(1)
-        connection.send_shell('save config')
-        time.sleep(2)
         print(f"VLAN {vlan_id} deleted successfully from interface {physical_interface}.")
-    
+    connection.send_shell('save config')
+    time.sleep(2)
     connection.close_connection()
 
 def add_gaia_route(ip, user, password, destination_network, gateway):
