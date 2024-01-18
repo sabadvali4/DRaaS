@@ -20,7 +20,7 @@ get_project_info()
 	    echo "Please install python 3" >> "$log_file"
 	    exit 1 
     fi
-    
+
     if [ ! -d $project_dir/venv ]; then
         echo "Setting up virtual environment..." >> "$log_file"
     	sudo apt-get install python3-venv
@@ -213,5 +213,12 @@ if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
     echo "All services are up." >> "$log_file"
     echo "MID Server: $mid_server" >> "$log_file"
 else
-    echo "Something went wrong. Check the status of your services. See the log file for details: $log_file"
+    echo "MID Server: $mid_server" >> "$log_file"
+    echo "One or both services are not active. Fetching detailed service status..." >> "$log_file"
+
+    producer_status_detail=$(sudo systemctl status producer.service)
+    echo -e "Producer service status:\n$producer_status_detail" >> "$log_file"
+    consumer_status_detail=$(sudo systemctl status consumer.service)
+    echo -e "Consumer service status:\n$consumer_status_detail" >> "$log_file"
+
 fi
