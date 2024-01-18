@@ -50,7 +50,7 @@ else
     get_project_info
 fi
 
-echo "$project_dir"
+echo "$project_dir" >> "$log_file"
 
 # Find the configuration file under the 'config' directory
 config_dir="$project_dir/config/"
