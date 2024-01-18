@@ -3,10 +3,13 @@
 DATE=$(date "+%Y%m%d%H%M")
 
 # File to store project directory and venv flag
-config_file="./config/draas_config.ini"
+config_file="../config/draas_config.ini"
 
 # Log file path
 log_file="/var/log/update_script.log"
+
+# Back up folder
+backup_dir="/opt/drass"
 
 echo "Started sync at ${DATE}"  >> "$log_file"
 
@@ -14,7 +17,7 @@ sudo apt-get install python3-venv
 # Function to prompt user for project directory
 get_project_info() 
 {
-    project_dir=$(pwd)
+    project_dir="../"
     if python3 -V 2>&1| grep -q "Python 3"; then
 		echo "Python 3 is installed" >> "$log_file"
     else
@@ -22,12 +25,12 @@ get_project_info()
 	    exit 1 
     fi
 
-    if [ ! -d $project_dir/venv ]; then
+    if [ ! -d $backup_dir/venv ]; then
         echo "Setting up virtual environment..." >> "$log_file"
-        python3 -m venv "$project_dir/venv"
-    	source "$project_dir/venv/bin/activate"
+        python3 -m venv "$backup_dir/venv"
+    	source "$backup_dir/venv/bin/activate"
     else
-    	source "$project_dir/venv/bin/activate"
+    	source "$backup_dir/venv/bin/activate"
     fi 
     echo "project_dir=$project_dir" > "$config_file"
 }
@@ -62,15 +65,12 @@ if [ -z "$ini_file" ]; then
     exit 1
 fi
 
-# Back up the parameters.ini file
-backup_dir="/opt/backup"
-
 # Check if the backup directory exists, if not, create it
-if [ ! -d "$backup_dir" ]; then
-    sudo mkdir -p "$backup_dir"
-    sudo chmod a+rw "$backup_dir" -R 
+if [ ! -d "$backup_dir/config" ]; then
+    sudo mkdir -p "$backup_dir/config"
+    sudo chmod a+rw "$backup_dir/config" -R 
 fi
-backup_file="$backup_dir/parameters_backup.ini"
+backup_file="$backup_dir/config/parameters_backup.ini"
 
 # Copy the parameters.ini file to the backup directory
 sudo cp "$ini_file" "$backup_file"
@@ -78,7 +78,6 @@ sudo cp "$ini_file" "$backup_file"
 # Parse the parameters.ini file to get the values
 #mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
 mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
-
 
 # Function to copy files
 copy_file() {
@@ -117,12 +116,12 @@ else
 fi
 
 # Activate virtual environment if it exists
-if [ -d "$project_dir/venv" ]; then
-    source "$project_dir/venv/bin/activate"
+if [ -d "$backup_dir/venv" ]; then
+    source "$backup_dir/venv/bin/activate"
 else
     # Create and activate virtual environment if it doesn't exist
-    python3 -m venv "$project_dir/venv"
-    source "$project_dir/venv/bin/activate"
+    python3 -m venv "$backup_dir/venv"
+    source "$backup_dir/venv/bin/activate"
 fi
 
 # Install Python dependencies
