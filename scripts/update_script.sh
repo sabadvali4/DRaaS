@@ -34,7 +34,7 @@ get_project_info()
 # Function to ask the user about the "whoami" command for the user parameter
 ask_user_about_username() {
     read -p "Do you want to use the current user ($(whoami)) as the service username? (yes/no): " use_whoami
-    if [ "$use_whoami" == "no" ]; then
+    if [ "$use_whoami" == "no"  ]; then
         read -p "Enter the desired username: " custom_user
         echo "user=$custom_user" >> "$config_file"
     else
@@ -75,6 +75,29 @@ sudo cp "$ini_file" "$backup_file"
 # Parse the parameters.ini file to get the values
 mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
 
+# Function to copy files
+copy_file() {
+    local source_file="$1"
+    local destination="$2"
+    
+    if [ -f "$source_file" ]; then
+        cp "$source_file" "$destination"
+    else
+        echo "Warning: Source file '$source_file' does not exist."
+    fi
+}
+
+# Check if the tmp directory exists, if not, create it
+tmp_dir="/tmp/scripts"
+if [ ! -d "$tmp_dir" ]; then
+    sudo mkdir -p "$tmp_dir"
+    sudo chmod a+rw "$tmp_dir" -R 
+fi
+
+copy_file "$project_dir/venv/bin/producer.py" "/tmp/scripts/producer.py.old"
+copy_file "$project_dir/venv/bin/consumer.py" "/tmp/scripts/consumer.py.old"
+
+
 # Ensure you are on the main branch
 git checkout main
 
@@ -85,7 +108,7 @@ if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
 else
     # Fetch and reset to the remote main branch
     git fetch origin main
-    git pull origin/main
+    git pull origin main
 fi
 
 # Activate virtual environment if it exists
@@ -136,8 +159,8 @@ update_service_file()
 check_systemd_changes() {
     local producer_diff=$(diff "$project_dir/producer.service" "$producer_service")
     local consumer_diff=$(diff "$project_dir/consumer.service" "$consumer_service")
-    local producer_py_diff=$(diff "$project_dir/producer.py" "$project_dir/venv/bin/producer.py")
-    local consumer_py_diff=$(diff "$project_dir/consumer.py" "$project_dir/venv/bin/consumer.py")
+    local producer_py_diff=$(diff "$project_dir/producer.py" "/tmp/scripts/producer.py.old")
+    local consumer_py_diff=$(diff "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old")
 
     if [ -z "$producer_diff" ] && [ -z "$consumer_diff" ] && [ -z "$producer_py_diff" ] && [ -z "$consumer_py_diff" ]; then
         echo "No changes in systemd service files, producer.py, or consumer.py. Skipping systemd reload." >> $log_file
