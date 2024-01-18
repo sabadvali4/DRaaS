@@ -3,6 +3,7 @@ from datetime import datetime; import paramiko, configparser, confparser; from n
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
 import glv; import redis
+import consumer; from consumer import update_credential_dict, redis_set, credential_dict
 load_dotenv()
 from time import sleep, time
 import settings; from settings import *; settings.init()
@@ -148,12 +149,49 @@ def send_status_update(ID, STATUS, OUTPUT):
                            auth=(settings.username, settings.password))
     valid_response_code(response.status_code, ID)
 
-
 def valid_response_code(statusCode,ID):
     if statusCode != 200:
         print("Api is not accesble. StatusCode is:", statusCode)
         logger.error('Error in updating API')
         redis_server.rpush(incompleted_tasks, ID)
+
+def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
+    if status_message == "status: success" and error is None:
+        if output_message is not None:
+            output = f"{status_message}\n{output_message}\n{output}"
+        else:
+            output = f"{status_message}\n{output}"
+        redis_set(req_id, "completed", output)
+        task_status = json.loads(redis_server.get(req_id).decode())["status"]
+        send_status_update(req_id, task_status, output)
+        update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
+        
+    elif status_message == "status: failed":
+        output = f"{status_message} {error}"
+        send_status_update(req_id, "failed", error)
+        #Update the credentials with a "failed" status if not already present
+        if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
+            update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+
+def send_gaia_status(req_id, status_message=None, output=None, error=None, req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None):
+    if status_message == "status: success":
+        redis_set(req_id, "completed", output)
+        task_status = json.loads(redis_server.get(req_id).decode())["status"]
+        send_status_update(req_id, task_status, output)
+
+    elif status_message == "status: failed":
+        if req_cmd.lower() == "add route":
+            output = f"{status_message} Error adding route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
+        elif req_cmd.lower() == "delete route":
+            output = f"{status_message} Error removing route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
+        elif req_cmd.lower() == "add vlan":
+            output = f"{status_message} Error adding VLANs {req_vlans} to interface {req_interface_name}: {error}"
+        elif req_cmd.lower() == "delete vlan":
+            output = f"{status_message} Error removing VLANs {req_vlans} from interface {req_interface_name}: {error}"
+        else:
+            output = f"{status_message} Error: {error}"
+        send_status_update(req_id, "failed", output)
+
 
 
 def check_privileged_connection(connection):

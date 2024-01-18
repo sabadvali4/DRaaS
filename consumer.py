@@ -89,25 +89,6 @@ def get_id_status(ID):
     commands = commands.json()
     return commands['result']
 
-def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
-    if status_message == "status: success" and error is None:
-        if output_message is not None:
-            output = f"{status_message}\n{output_message}\n{output}"
-        else:
-            output = f"{status_message}\n{output}"
-        redis_set(req_id, "completed", output)
-        task_status = json.loads(redis_server.get(req_id).decode())["status"]
-        send_status_update(req_id, task_status, output)
-        update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
-        
-    elif status_message == "status: failed":
-        output = f"{status_message} {error}"
-        send_status_update(req_id, "failed", error)
-        #Update the credentials with a "failed" status if not already present
-        if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
-            update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
-
-
 # Main function
 def main():
     #max_wait_time = 100 * 60  # Maximum wait time in seconds (30 minutes)
@@ -275,10 +256,9 @@ def main():
                                 status_message = "status: success"
                                 output_message = f"VLANs {req_vlans} {action} to interface {req_interface_name} on Gaia switch {req_switch_ip}."
                                 output = f"{status_message}\n{output_message}\n{json_data}"
-                    
-                                redis_set(req_id, "completed", output)
-                                task_status = json.loads(redis_server.get(req_id).decode())["status"]
-                                send_status_update(req_id, task_status, output)
+                        
+                                send_gaia_status(req_id, status_message="status: success", output=output, error=None,
+                                                  req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None)
 
                             ##routing add/remove
                             elif discovery == "0" and destination and gateway:
@@ -293,14 +273,13 @@ def main():
                                 route_dict = json.loads(gaia_route_info)
                                 combined_data = {"routes": route_dict}
                                 json_data = json.dumps(combined_data, indent=4)
-
-                                status_message = "status: success"
+                                
+                                status_message="status: success"
                                 output_message = f"Route for {destination} {action} on Gaia switch {req_switch_ip}."
                                 output = f"{status_message}\n{output_message}\n{json_data}"
 
-                                redis_set(req_id, "completed", output)
-                                task_status = json.loads(redis_server.get(req_id).decode())["status"]
-                                send_status_update(req_id, task_status, output)
+                                send_gaia_status(req_id, status_message="status: success", output=output, error=None,
+                                                  req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None)
 
                             if discovery == "1":
                                 gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
@@ -309,29 +288,14 @@ def main():
                                 route_dict = json.loads(gaia_route_info)
                                 combined_data = {"interfaces": interface_dict, "routes": route_dict}
                                 json_data = json.dumps(combined_data, indent=4)
-            
-                                status_message = "status: success"
                                 output = json_data
 
-                                redis_set(req_id, "completed", output)
-                                task_status = json.loads(redis_server.get(req_id).decode())["status"]
-                                send_status_update(req_id, task_status, output)
+                                send_gaia_status(req_id, status_message="status: success", output=output, error=None,
+                                                  req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None)
 
                         except Exception as error:
-                            status_message = "status: failed"
-    
-                            # Adjusting the error message based on the command and including the gateway if available
-                            if req_cmd.lower() == "add route":
-                                output = f"{status_message} Error adding route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
-                            elif req_cmd.lower() == "delete route":
-                                output = f"{status_message} Error removing route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
-                            elif req_cmd.lower() == "add vlan":
-                                output = f"{status_message} Error adding VLANs {req_vlans} to interface {req_interface_name}: {error}"
-                            elif req_cmd.lower() == "delete vlan":
-                                output = f"{status_message} Error removing VLANs {req_vlans} from interface {req_interface_name}: {error}"
-                            else:
-                                output = f"{status_message} Error: {error}"
-                            send_status_update(req_id, "failed", output)
+                            send_gaia_status(req_id, status_message="status: failed", output=None, error=error,
+                                                  req_cmd=req_cmd, destination=destination, gateway=gateway, req_vlans=req_vlans,req_interface_name=req_interface_name)
                 else:
                     print(f"No matching switch found for IP: {req_switch_ip}")
                     send_status_update(req_id, "failed", "Could not find switch for IP")
