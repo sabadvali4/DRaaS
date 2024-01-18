@@ -3,7 +3,6 @@ from datetime import datetime; import paramiko, configparser, confparser; from n
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
 import glv; import redis
-import consumer; from consumer import update_credential_dict, redis_set, credential_dict
 load_dotenv()
 from time import sleep, time
 import settings; from settings import *; settings.init()
@@ -16,6 +15,7 @@ redis_server = redis.Redis()
 incompleted_tasks = glv.incompleted_tasks
 update_req_url = settings.url + "/SetCommandStatus"
 added_vlan = glv.added_vlan
+credential_dict = glv.credential_dict
 #SSH connection function
 class SSHClient:
     MAX_RETRIES = 3
@@ -140,6 +140,24 @@ def run_command_and_get_json(ip_address, username, password, command):
         # Close the SSH connection when done
         ssh_client.close_connection()
 
+# Function to set a value in Redis
+def redis_set(KEY="", VALUE="", OUTPUT=""):
+    try:
+        if OUTPUT:
+            OUTPUT = re.sub("\"", "\\\"", "      ".join(OUTPUT.splitlines()))
+        else:
+            OUTPUT = ""  # Handle the case where OUTPUT is None or empty
+        redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
+        #print(redis_server.get(KEY))
+        logger.info('Redis set - Key: %s, Value: %s', KEY, VALUE)
+    except Exception as e:
+        logger.error('Error in redis_set: %s', str(e))
+
+# Function to update the credentials dictionary with the status
+def update_credential_dict(ip, username, password, status):
+    timestamp = time()
+    credential_dict[ip] = {"timestamp": timestamp, "status": status, "user": username, "pass": password}
+
 # Function to send a status or update to ServiceNow API
 def send_status_update(ID, STATUS, OUTPUT):
     status = STATUS.lower()
@@ -191,8 +209,6 @@ def send_gaia_status(req_id, status_message=None, output=None, error=None, req_c
         else:
             output = f"{status_message} Error: {error}"
         send_status_update(req_id, "failed", output)
-
-
 
 def check_privileged_connection(connection):
     """

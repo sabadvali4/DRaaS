@@ -13,6 +13,8 @@ settings.init()
 redis_server = redis.Redis()
 queue_name = glv.queue_name
 incompleted_tasks = glv.incompleted_tasks
+credential_dict = glv.credential_dict
+
 current_task_que = "current_task_que"
 switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
@@ -40,22 +42,6 @@ except ImportError:
     # systemd.journal module is not available, use basic console logging
     logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
 
-# Dictionary to store credentials of switches
-credential_dict = {}
-
-# Function to set a value in Redis
-def redis_set(KEY="", VALUE="", OUTPUT=""):
-    try:
-        if OUTPUT:
-            OUTPUT = re.sub("\"", "\\\"", "      ".join(OUTPUT.splitlines()))
-        else:
-            OUTPUT = ""  # Handle the case where OUTPUT is None or empty
-        redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
-        #print(redis_server.get(KEY))
-        logger.info('Redis set - Key: %s, Value: %s', KEY, VALUE)
-    except Exception as e:
-        logger.error('Error in redis_set: %s', str(e))
-
 # Function to get the next request from the Redis queue
 def redis_queue_get(queue_name):
     try:
@@ -69,11 +55,6 @@ def redis_queue_get(queue_name):
     except Exception as e:
         logger.error('Error in redis_queue_get: %s', str(e))
         return None
-
-# Function to update the credentials dictionary with the status
-def update_credential_dict(ip, username, password, status):
-    timestamp = time()
-    credential_dict[ip] = {"timestamp": timestamp, "status": status, "user": username, "pass": password}
 
 # Function to get credentials from the dictionary
 def get_credentials(ip):
