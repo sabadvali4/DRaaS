@@ -10,6 +10,7 @@ log_file="/var/log/update_script.log"
 
 echo "Started sync at ${DATE}"  >> "$log_file"
 
+sudo apt-get install python3-venv
 # Function to prompt user for project directory
 get_project_info() 
 {
@@ -23,8 +24,7 @@ get_project_info()
 
     if [ ! -d $project_dir/venv ]; then
         echo "Setting up virtual environment..." >> "$log_file"
-    	sudo apt-get install python3-venv
-        python3 -m venv venv
+        python3 -m venv "$project_dir/venv"
     	source "$project_dir/venv/bin/activate"
     else
     	source "$project_dir/venv/bin/activate"
@@ -166,14 +166,13 @@ check_systemd_changes() {
     local consumer_py_diff=$(diff "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old")
 
     if [ -z "$producer_diff" ] && [ -z "$consumer_diff" ] && [ -z "$producer_py_diff" ] && [ -z "$consumer_py_diff" ]; then
-        echo "No changes in systemd service files, producer.py, or consumer.py. Skipping systemd reload." >> $log_file
+        echo -e "No changes in systemd service files, producer.py, or consumer.py. Skipping systemd reload." >> $log_file
         return 1  # Indicate no changes
     else
         echo -e "Changes detected in the following files:\n$( [ -n "$producer_diff" ] && echo "- producer.service" )\n$( [ -n "$consumer_diff" ] && echo "- consumer.service" )\n$( [ -n "$producer_py_diff" ] && echo "- producer.py" )\n$( [ -n "$consumer_py_diff" ] && echo "- consumer.py" )" >> $log_file
         return 0  # Indicate changes
     fi
 }
-
 
 # Check if service files exist, otherwise copy them
 producer_service="/etc/systemd/system/producer.service"
