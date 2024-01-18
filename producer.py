@@ -4,9 +4,9 @@ import time; from time import *
 import time as my_time
 import requests; import re; import json; import logging
 from datetime import datetime
-from consumer import valid_response_code
 import glv; from glv import Enabled
 import settings
+from functions import *
 settings.init()
 
 redis_server = redis.Redis(host='localhost', port=6379, db=0)
@@ -14,7 +14,6 @@ redis_server = redis.Redis(host='localhost', port=6379, db=0)
 # Set the value of Enabled to Redis when the script starts
 redis_server.set("Enabled", int(glv.Enabled))
 
-# queue_name = "api_req_queue"
 queue_name = glv.queue_name
 failed_tasks=glv.failed_tasks
 completed_tasks=glv.completed_tasks
@@ -49,23 +48,6 @@ def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
     print (f"Got from commands from API: {commands['result']}")
     return commands['result']
-
-def send_status_update(ID, STATUS, OUTPUT):
-    try:
-        status = STATUS.lower()
-        print(f"producer ---> ID: {ID}, STATUS: {status}, OUTPUT: {OUTPUT}")
-        payload = json.dumps(
-            {
-                "command_id": f"{ID}",
-                "command_status": f"{status}",
-                "command_output": f"{OUTPUT}"
-            })
-        # print(payload)
-        answer = requests.post(update_req_url, data=payload,
-                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
-
-    except Exception as e:
-        logger.error('Error in send_status_update: %s', str(e))
 
 def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, items_failed, items_incomplete, Timestamp):
     try:
@@ -131,7 +113,6 @@ if __name__ == "__main__":
     while True:
         # Get the value of 'Enabled' from Redis
         enabled_value = redis_server.get("Enabled")
-
         # If 'Enabled' is False, skip processing tasks
         if enabled_value and not bool(int(enabled_value.decode())):
             logger.info("Processing is disabled. Waiting for 'Enabled' to be True.")

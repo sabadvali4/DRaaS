@@ -1,14 +1,20 @@
-import time, sys, threading; from unittest import result; import requests, json, re, os
+import time, sys, threading; from unittest import result; import requests, json, re, os; import logging
 from datetime import datetime; import paramiko, configparser, confparser; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
-import glv; from glv import added_vlan  # Import the added_vlan list
+import glv; import redis
 load_dotenv()
 from time import sleep, time
+import settings; from settings import *; settings.init()
 config = configparser.ConfigParser()
 config.sections()
 config.read('./config/parameters.ini')
 
+logger = logging.getLogger(__name__)
+redis_server = redis.Redis()
+incompleted_tasks = glv.incompleted_tasks
+update_req_url = settings.url + "/SetCommandStatus"
+added_vlan = glv.added_vlan
 #SSH connection function
 class SSHClient:
     MAX_RETRIES = 3
@@ -133,26 +139,22 @@ def run_command_and_get_json(ip_address, username, password, command):
         # Close the SSH connection when done
         ssh_client.close_connection()
 
+# Function to send a status or update to ServiceNow API
+def send_status_update(ID, STATUS, OUTPUT):
+    status = STATUS.lower()
+    print(f"{ID}, STATUS: {status}, OUTPUT: {OUTPUT}")
+    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{status}", "command_output": f"{OUTPUT}"})
+    response = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
+                           auth=(settings.username, settings.password))
+    valid_response_code(response.status_code, ID)
 
-def is_json(myjson):
-  try:
-    json.loads(str(myjson))
-  except ValueError as e:
-    return False
-  return True
 
-def get_interfaces_mode(ip_address, username, password, interfaces, sshClient=None):
-    interfaces_mode = []
-    for interface in interfaces:
-        command = "show int " + interface + " switchport | include Administrative Mode:"
-        response = run_command_and_get_json(ip_address, username, password,command, sshClient)[0]
-        interface_mode = str(response.replace("\n", "").replace("\r", "").replace("Administrative Mode: ", ""))
-        interface_mode = {
-            'interface': interface,
-            'mode': interface_mode
-        }
-        interfaces_mode.append(interface_mode)
-    return interfaces_mode
+def valid_response_code(statusCode,ID):
+    if statusCode != 200:
+        print("Api is not accesble. StatusCode is:", statusCode)
+        logger.error('Error in updating API')
+        redis_server.rpush(incompleted_tasks, ID)
+
 
 def check_privileged_connection(connection):
     """
