@@ -76,7 +76,9 @@ backup_file="$backup_dir/parameters_backup.ini"
 sudo cp "$ini_file" "$backup_file"
 
 # Parse the parameters.ini file to get the values
-mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
+#mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
+mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
+
 
 # Function to copy files
 copy_file() {
