@@ -49,6 +49,8 @@ else
     get_project_info
 fi
 
+echo "$project_dir"
+
 # Find the configuration file under the 'config' directory
 config_dir="$project_dir/config/"
 ini_file="$(find "$config_dir" -maxdepth 1 -type f -iname "*.ini" -print -quit)"
@@ -94,8 +96,8 @@ if [ ! -d "$tmp_dir" ]; then
     sudo chmod a+rw "$tmp_dir" -R 
 fi
 
-copy_file "$project_dir/venv/bin/producer.py" "/tmp/scripts/producer.py.old"
-copy_file "$project_dir/venv/bin/consumer.py" "/tmp/scripts/consumer.py.old"
+copy_file "$project_dir/producer.py" "/tmp/scripts/producer.py.old"
+copy_file "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old"
 
 
 # Ensure you are on the main branch
