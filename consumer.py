@@ -99,6 +99,7 @@ def send_successORfailed_status(req_id, status_message=None, output_message=None
         task_status = json.loads(redis_server.get(req_id).decode())["status"]
         send_status_update(req_id, task_status, output)
         update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
+        
     elif status_message == "status: failed":
         output = f"{status_message} {error}"
         send_status_update(req_id, "failed", error)
@@ -223,9 +224,11 @@ def main():
                                             output = "operation is done."
 
                                     except Exception as error:
-                                        send_successORfailed_status(req_id, output_message=None, status_message="status: failed", error=error ,output=output,req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
+                                        send_successORfailed_status(req_id, output_message=None, status_message="status: failed", error=error ,output=None,
+                                                                    req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
                                     else:
-                                        send_successORfailed_status(req_id, output_message, status_message="status: success", error=None ,output=output,req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
+                                        send_successORfailed_status(req_id, output_message, status_message="status: success", error=None ,output=output,
+                                                                    req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
                             else:
                                 try:
                                     if req_cmd != "" and req_port_mode == "":
@@ -245,10 +248,11 @@ def main():
                                     if output == None:
                                         output = "operation is done."
                                 except Exception as error:
-                                    send_successORfailed_status(req_id, output_message=None, status_message="status: failed", error=error ,output=output,req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
+                                    send_successORfailed_status(req_id, output_message=None, status_message="status: failed", error=error ,output=None,
+                                                                req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
                                 else:
-                                    send_successORfailed_status(req_id, output_message, status_message="status: success", error= None ,output=output,req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
-
+                                    send_successORfailed_status(req_id, output_message, status_message="status: success", error= None ,output=output,
+                                                                req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
                         # When a task is completed, remove the "current_task" key
                         redis_server.delete("current_task")
 
