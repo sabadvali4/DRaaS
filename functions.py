@@ -1,14 +1,21 @@
-import time, sys, threading; from unittest import result; import requests, json, re, os
+import time, sys, threading; from unittest import result; import requests, json, re, os; import logging
 from datetime import datetime; import paramiko, configparser, confparser; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
-import glv; from glv import added_vlan  # Import the added_vlan list
+import glv; import redis
 load_dotenv()
 from time import sleep, time
+import settings; from settings import *; settings.init()
 config = configparser.ConfigParser()
 config.sections()
 config.read('./config/parameters.ini')
 
+logger = logging.getLogger(__name__)
+redis_server = redis.Redis()
+incompleted_tasks = glv.incompleted_tasks
+update_req_url = settings.url + "/SetCommandStatus"
+added_vlan = glv.added_vlan
+credential_dict = glv.credential_dict
 #SSH connection function
 class SSHClient:
     MAX_RETRIES = 3
@@ -133,26 +140,75 @@ def run_command_and_get_json(ip_address, username, password, command):
         # Close the SSH connection when done
         ssh_client.close_connection()
 
+# Function to set a value in Redis
+def redis_set(KEY="", VALUE="", OUTPUT=""):
+    try:
+        if OUTPUT:
+            OUTPUT = re.sub("\"", "\\\"", "      ".join(OUTPUT.splitlines()))
+        else:
+            OUTPUT = ""  # Handle the case where OUTPUT is None or empty
+        redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
+        #print(redis_server.get(KEY))
+        logger.info('Redis set - Key: %s, Value: %s', KEY, VALUE)
+    except Exception as e:
+        logger.error('Error in redis_set: %s', str(e))
 
-def is_json(myjson):
-  try:
-    json.loads(str(myjson))
-  except ValueError as e:
-    return False
-  return True
+# Function to update the credentials dictionary with the status
+def update_credential_dict(ip, username, password, status):
+    timestamp = time()
+    credential_dict[ip] = {"timestamp": timestamp, "status": status, "user": username, "pass": password}
 
-def get_interfaces_mode(ip_address, username, password, interfaces, sshClient=None):
-    interfaces_mode = []
-    for interface in interfaces:
-        command = "show int " + interface + " switchport | include Administrative Mode:"
-        response = run_command_and_get_json(ip_address, username, password,command, sshClient)[0]
-        interface_mode = str(response.replace("\n", "").replace("\r", "").replace("Administrative Mode: ", ""))
-        interface_mode = {
-            'interface': interface,
-            'mode': interface_mode
-        }
-        interfaces_mode.append(interface_mode)
-    return interfaces_mode
+# Function to send a status or update to ServiceNow API
+def send_status_update(ID, STATUS, OUTPUT):
+    status = STATUS.lower()
+    print(f"{ID}, STATUS: {status}, OUTPUT: {OUTPUT}")
+    payload = json.dumps({"command_id": f"{ID}", "command_status": f"{status}", "command_output": f"{OUTPUT}"})
+    response = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
+                           auth=(settings.username, settings.password))
+    valid_response_code(response.status_code, ID)
+
+def valid_response_code(statusCode,ID):
+    if statusCode != 200:
+        print("Api is not accesble. StatusCode is:", statusCode)
+        logger.error('Error in updating API')
+        redis_server.rpush(incompleted_tasks, ID)
+
+def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
+    if status_message == "status: success" and error is None:
+        if output_message is not None:
+            output = f"{status_message}\n{output_message}\n{output}"
+        else:
+            output = f"{status_message}\n{output}"
+        redis_set(req_id, "completed", output)
+        task_status = json.loads(redis_server.get(req_id).decode())["status"]
+        send_status_update(req_id, task_status, output)
+        update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
+        
+    elif status_message == "status: failed":
+        output = f"{status_message} {error}"
+        send_status_update(req_id, "failed", error)
+        #Update the credentials with a "failed" status if not already present
+        if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
+            update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+
+def send_gaia_status(req_id, status_message=None, output=None, error=None, req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None):
+    if status_message == "status: success":
+        redis_set(req_id, "completed", output)
+        task_status = json.loads(redis_server.get(req_id).decode())["status"]
+        send_status_update(req_id, task_status, output)
+
+    elif status_message == "status: failed":
+        if req_cmd.lower() == "add route":
+            output = f"{status_message} Error adding route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
+        elif req_cmd.lower() == "delete route":
+            output = f"{status_message} Error removing route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
+        elif req_cmd.lower() == "add vlan":
+            output = f"{status_message} Error adding VLANs {req_vlans} to interface {req_interface_name}: {error}"
+        elif req_cmd.lower() == "delete vlan":
+            output = f"{status_message} Error removing VLANs {req_vlans} from interface {req_interface_name}: {error}"
+        else:
+            output = f"{status_message} Error: {error}"
+        send_status_update(req_id, "failed", output)
 
 def check_privileged_connection(connection):
     """

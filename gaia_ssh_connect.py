@@ -157,10 +157,11 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan_list):
     if isinstance(vlan_list, int):
         # If a single VLAN ID is provided, convert it to a list
         vlan_list = [vlan_list]
-
+    print("list:", vlan_list)
     expanded_vlans = expand_vlan_ranges(vlan_list)
     connection.create_vlan(physical_interface, expanded_vlans)
     connection.close_connection()
+
 
 def remove_gaia_vlan(ip, user, password , physical_interface, vlan_list):
     connection = SSHConnection(ip, user, password)
