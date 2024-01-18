@@ -17,7 +17,7 @@ sudo apt-get install python3-venv
 # Function to prompt user for project directory
 get_project_info() 
 {
-    project_dir="../"
+    project_dir=$(dirname "$(dirname "$0")")
     if python3 -V 2>&1| grep -q "Python 3"; then
 		echo "Python 3 is installed" >> "$log_file"
     else
@@ -125,7 +125,7 @@ else
 fi
 
 # Install Python dependencies
-pip install -r requirements.txt
+pip install -r "$project_dir/requirements.txt"
 # Copy the 'config' directory to /opt/
 sudo cp -a "$config_dir" /opt/
 
