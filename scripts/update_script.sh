@@ -115,7 +115,7 @@ else
 fi
 
 # Activate virtual environment if it exists
-if [ $project_dir/venv ]; then
+if [ -d "$project_dir/venv" ]; then
     source "$project_dir/venv/bin/activate"
 else
     # Create and activate virtual environment if it doesn't exist
