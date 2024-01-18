@@ -20,10 +20,11 @@ get_project_info()
 	    echo "Please install python 3" >> "$log_file"
 	    exit 1 
     fi
-
+    
     if [ ! -d $project_dir/venv ]; then
         echo "Setting up virtual environment..." >> "$log_file"
-    	python3 -m venv "$project_dir/venv"
+    	sudo apt-get install python3-venv
+        python3 -m venv venv
     	source "$project_dir/venv/bin/activate"
     else
     	source "$project_dir/venv/bin/activate"
@@ -196,7 +197,7 @@ if check_systemd_changes; then
     sudo systemctl restart producer.service > "$log_file" 2>&1
     sudo systemctl restart consumer.service >> "$log_file" 2>&1
 else
-    echo "No need to reload systemd. Skipping systemd reload." >> $log_file
+    echo "No need to reload systemd. Skipping systemd reload." >> "$log_file"
 fi
 
 # Restart your services and log the output
