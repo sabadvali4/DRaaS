@@ -6,15 +6,15 @@ DATE=$(date "+%Y%m%d%H%M")
 log_file="/var/log/update_script.log"
 echo "Started sync at ${DATE}"  >> "$log_file"
 
-BASEDIR="/opt/DRaaS"
-config_file="${BASEDIR}/config/draas_config.ini"
+base_directory="/opt/DRaaS"
+config_file="${base_directory}/config/draas_config.ini"
 # Check if the configuration file exists
 if [ -f "$config_file" ]; then
     echo "Config file found" >> "$log_file"
 else
     echo "New installation detected. Creating necessary directories..." >> "$log_file"
     # Create the config directory
-    config_dir="${BASEDIR}/config"
+    config_dir="${base_directory}/config"
     if [ -d "$config_dir" ]; then
         echo "Found $config_dir directory"
     else
@@ -24,7 +24,7 @@ else
 fi
 
 # Back up folder
-backup_dir="${BASEDIR}/backup"
+backup_dir="${base_directory}/backup"
 if [ -d ${backup_dir} ]; then
 	echo "Found ${backup_dir} directory"
 else
@@ -69,8 +69,8 @@ create_venv() {
     if [ -f "$config_file" ]; then
         source "$config_file"
         if [ -z "$venv_dir" ]; then
-            echo "venv_dir not specified in $config_file. Using $BASEDIR directory $venv_dir." >> "$log_file"
-            venv_dir="$BASEDIR/venv"
+            echo "venv_dir not specified in $config_file. Using $base_directory directory $venv_dir." >> "$log_file"
+            venv_dir="$base_directory/venv"
             mkdir -p "$venv_dir"
             python3 -m venv "$venv_dir"
             source "$venv_dir/bin/activate"
@@ -80,8 +80,8 @@ create_venv() {
             source "$venv_dir/bin/activate"
         fi
     else
-        echo "Config file not found. Creating and using $BASEDIR directory $venv_dir." >> "$log_file"
-        venv_dir="$BASEDIR/venv"
+        echo "Config file not found. Creating and using $base_directory directory $venv_dir." >> "$log_file"
+        venv_dir="$base_directory/venv"
         mkdir -p "$venv_dir"
         python3 -m venv "$venv_dir"
         source "$venv_dir/bin/activate"
