@@ -1,21 +1,27 @@
 #!/bin/bash
 
 DATE=$(date "+%Y%m%d%H%M")
-BASEDIR="/opt/DRaaS"
-config_file="/opt/DRaaS/config/draas_config.ini"
-# File to store project directory and venv flag
-if [ -f /opt/DRaaS/config/draas_config.ini ]; then  
-else
-	echo "Config file found"
-	if [ -d ${BASEDIR}/config ]; then
-		echo "Found ${BASEDIR}/config directory"
-	else
-		sudo mkdir -p ${BASEDIR}/config
-	fi
-fi
 
 # Log file path
 log_file="/var/log/update_script.log"
+echo "Started sync at ${DATE}"  >> "$log_file"
+
+BASEDIR="/opt/DRaaS"
+config_file="/opt/DRaaS/config/draas_config.ini"
+# Check if the configuration file exists
+if [ -f "$config_file" ]; then
+    echo "Config file found" >> "$log_file"
+else
+    echo "New installation detected. Creating necessary directories..." >> "$log_file"
+    # Create the config directory
+    config_dir="${BASEDIR}/config"
+    if [ -d "$config_dir" ]; then
+        echo "Found $config_dir directory"
+    else
+        sudo mkdir -p "$config_dir"
+        echo "Created $config_dir directory"
+    fi
+fi
 
 # Back up folder
 backup_dir="${BASEDIR}/backup"
@@ -24,8 +30,6 @@ if [ -d ${backup_dir} ]; then
 else
 	sudo mkdir -p ${backup_dir}
 fi
-
-echo "Started sync at ${DATE}"  >> "$log_file"
 
 sudo apt-get install python3-venv
 # Function to prompt user for project directory
@@ -60,6 +64,42 @@ ask_user_about_username() {
     fi
 }
 
+# Function to check and create the virtual environment
+create_venv() {
+    if [ -f "$config_file" ]; then
+        source "$config_file"
+        if [ -z "$venv_dir" ]; then
+            echo "venv_dir not specified in $config_file. Using $BASEDIR directory $venv_dir." >> "$log_file"
+            venv_dir="$BASEDIR/venv"
+            mkdir -p "$venv_dir"
+            python3 -m venv "$venv_dir"
+            source "$venv_dir/bin/activate"
+            echo "venv_dir=${venv_dir}" >> "$config_file"
+        else
+            echo "Using existing virtual environment in $venv_dir." >> "$log_file"
+            source "$venv_dir/bin/activate"
+        fi
+    else
+        echo "Config file not found. Creating and using backup directory $venv_dir." >> "$log_file"
+        ##add creation of the config file
+
+        source "$backup_dir"
+        if [ -z "$venv_dir" ]; then
+            venv_dir="$backup_dir/venv"
+            mkdir -p "$venv_dir"
+            python3 -m venv "$venv_dir"
+            source "$venv_dir/bin/activate"
+            echo "venv_dir=${venv_dir}" > "$config_file"
+        else
+            echo "Using existing virtual environment in $venv_dir." >> "$log_file"
+            source "$venv_dir/bin/activate"
+            echo "venv_dir=${venv_dir}" > "$config_file"
+        fi
+    fi
+}
+
+create_venv
+
 # Check if the project information is saved, otherwise ask the user
 if [ -f "$config_file" ]; then
     source $config_file
@@ -90,7 +130,6 @@ backup_file="$backup_dir/config/parameters_backup.ini"
 sudo cp "$ini_file" "$backup_file"
 
 # Parse the parameters.ini file to get the values
-#mid_server=$(awk -F "=" '/^MID_SERVER/ {print $2}' "$ini_file")
 mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
 
 # Function to copy files
@@ -130,8 +169,9 @@ else
 fi
 
 # Activate virtual environment if it exists
-if [ -d "$backup_dir/venv" ]; then
-    source "$backup_dir/venv/bin/activate"
+if [ -f "$config_file" ]; then
+    source $config_file
+    source "$venv_dir/bin/activate"
 else
     # Create and activate virtual environment if it doesn't exist
     python3 -m venv "$backup_dir/venv"
