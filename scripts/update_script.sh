@@ -80,21 +80,12 @@ create_venv() {
             source "$venv_dir/bin/activate"
         fi
     else
-        echo "Config file not found. Creating and using backup directory $venv_dir." >> "$log_file"
-        ##add creation of the config file
-
-        source "$backup_dir"
-        if [ -z "$venv_dir" ]; then
-            venv_dir="$backup_dir/venv"
-            mkdir -p "$venv_dir"
-            python3 -m venv "$venv_dir"
-            source "$venv_dir/bin/activate"
-            echo "venv_dir=${venv_dir}" > "$config_file"
-        else
-            echo "Using existing virtual environment in $venv_dir." >> "$log_file"
-            source "$venv_dir/bin/activate"
-            echo "venv_dir=${venv_dir}" > "$config_file"
-        fi
+        echo "Config file not found. Creating and using $BASEDIR directory $venv_dir." >> "$log_file"
+        venv_dir="$BASEDIR/venv"
+        mkdir -p "$venv_dir"
+        python3 -m venv "$venv_dir"
+        source "$venv_dir/bin/activate"
+        echo "venv_dir=${venv_dir}" >> "$config_file"
     fi
 }
 
