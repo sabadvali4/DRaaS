@@ -36,7 +36,8 @@ sudo apt-get install python3-venv
 # Function to prompt user for project directory
 get_project_info() 
 {
-    project_dir=$(dirname "$(dirname "$0")")
+    project_dir=$(dirname "$(dirname "$(realpath "$0")")")
+    echo "project_dir=${project_dir}" >> "$config_file"
     if python3 -V 2>&1| grep -q "Python 3"; then
 		echo "Python 3 is installed" >> "$log_file"
     else
@@ -52,6 +53,7 @@ get_project_info()
             source "$venv_dir/bin/activate"
         else
             create_venv
+        fi
     else
         # Create and activate virtual environment if it doesn't exist
         echo "No config file. Need to create the venv" >> "$log_file"
@@ -80,7 +82,7 @@ create_venv() {
             mkdir -p "$venv_dir"
             python3 -m venv "$venv_dir"
             source "$venv_dir/bin/activate"
-            echo "venv_dir=${venv_dir}" >> "$backup_dir/venv/venv.ini"
+            #echo "venv_dir=${venv_dir}" >> "$backup_dir/venv/venv.ini"
             echo "venv_dir=${venv_dir}" >> "$config_file"
         else
             echo "Using existing virtual environment in $venv_dir." >> "$log_file"
@@ -92,7 +94,7 @@ create_venv() {
         mkdir -p "$venv_dir"
         python3 -m venv "$venv_dir"
         source "$venv_dir/bin/activate"
-        echo "venv_dir=${venv_dir}" >> "$backup_dir/venv/venv.ini"
+        #echo "venv_dir=${venv_dir}" >> "$backup_dir/venv/venv.ini"
         echo "venv_dir=${venv_dir}" >> "$config_file"
     fi
 }
@@ -100,11 +102,15 @@ create_venv() {
 # Check if the project information is saved, otherwise ask the user
 if [ -f "$config_file" ]; then
     source $config_file
+    if [ -z "$project_dir" ] || [ -z "$user" ] || [ -z "$venv_dir" ]; then
+        echo "One or more parameters (project directory, user, or venv directory) are missing in the config file. Please provide the missing information."
+        get_project_info
+        ask_user_about_username
 else
     get_project_info
 fi
 
-echo "$project_dir" >> "$log_file"
+echo "Project directory: $project_dir" >> "$log_file"
 
 # Find the configuration file under the 'config' directory
 project_config_dir="$project_dir/config/"
@@ -268,5 +274,4 @@ else
     echo -e "Producer service status:\n$producer_status_detail" >> "$log_file"
     consumer_status_detail=$(sudo systemctl status consumer.service)
     echo -e "Consumer service status:\n$consumer_status_detail" >> "$log_file"
-
 fi
