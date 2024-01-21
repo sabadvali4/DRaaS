@@ -7,7 +7,7 @@ log_file="/var/log/update_script.log"
 echo "Started sync at ${DATE}"  >> "$log_file"
 
 BASEDIR="/opt/DRaaS"
-config_file="/opt/DRaaS/config/draas_config.ini"
+config_file="${BASEDIR}/config/draas_config.ini"
 # Check if the configuration file exists
 if [ -f "$config_file" ]; then
     echo "Config file found" >> "$log_file"
