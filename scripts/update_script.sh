@@ -48,7 +48,7 @@ get_project_info()
     # Activate virtual environment if it exists
     if [ -f "$config_file" ]; then
         source $config_file
-        if [-n "$venv_dir" ]; then
+        if [ -n "$venv_dir" ]; then
             echo "Config file is existing along with venv dir: $venv_dir" >> "$log_file"
             source "$venv_dir/bin/activate"
         else
@@ -82,7 +82,6 @@ create_venv() {
             mkdir -p "$venv_dir"
             python3 -m venv "$venv_dir"
             source "$venv_dir/bin/activate"
-            #echo "venv_dir=${venv_dir}" >> "$backup_dir/venv/venv.ini"
             echo "venv_dir=${venv_dir}" >> "$config_file"
         else
             echo "Using existing virtual environment in $venv_dir." >> "$log_file"
@@ -94,7 +93,6 @@ create_venv() {
         mkdir -p "$venv_dir"
         python3 -m venv "$venv_dir"
         source "$venv_dir/bin/activate"
-        #echo "venv_dir=${venv_dir}" >> "$backup_dir/venv/venv.ini"
         echo "venv_dir=${venv_dir}" >> "$config_file"
     fi
 }
@@ -106,6 +104,7 @@ if [ -f "$config_file" ]; then
         echo "One or more parameters (project directory, user, or venv directory) are missing in the config file. Please provide the missing information."
         get_project_info
         ask_user_about_username
+    fi
 else
     get_project_info
 fi
@@ -122,11 +121,6 @@ if [ -z "$ini_file" ]; then
     exit 1
 fi
 
-backup_file="$backup_dir/config/parameters_backup.ini"
-
-# Copy the parameters.ini file to the backup directory
-sudo cp "$ini_file" "$backup_file"
-
 # Parse the parameters.ini file to get the values
 mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
 
@@ -134,7 +128,6 @@ mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:
 copy_file() {
     local source_file="$1"
     local destination="$2"
-    
     if [ -f "$source_file" ]; then
         cp "$source_file" "$destination"
     else
@@ -162,6 +155,7 @@ if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
     exit 0
 else
     # Fetch and reset to the remote main branch
+    git stash
     git fetch origin main
     git pull origin main
 fi
@@ -169,7 +163,7 @@ fi
 # Activate virtual environment if it exists
 if [ -f "$config_file" ]; then
     source $config_file
-    if [-n "$venv_dir" ]; then
+    if [ -n "$venv_dir" ]; then
         source "$venv_dir/bin/activate"
 else
     # Create and activate virtual environment if it doesn't exist
@@ -179,9 +173,7 @@ fi
 # Install Python dependencies
 pip install -r "$project_dir/requirements.txt"
 # Copy the 'config' directory to /opt/
-#sudo cp -a "$project_config_dir" "$base_directory"
-sudo rsync -av --exclude='.*' "$project_config_dir"/* "$config_dir"
-
+sudo cp -p "$project_config_dir/parameters.ini" "${base_directory}/config/"
 
 # Function to update service file with correct parameters
 update_service_file() 
