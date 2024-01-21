@@ -162,11 +162,11 @@ fi
 # Activate virtual environment if it exists
 if [ -f "$config_file" ]; then
     source $config_file
-    source "$venv_dir/bin/activate"
+    if [-n "$venv_dir" ]; then
+        source "$venv_dir/bin/activate"
 else
     # Create and activate virtual environment if it doesn't exist
-    python3 -m venv "$backup_dir/venv"
-    source "$backup_dir/venv/bin/activate"
+    create_venv
 fi
 
 # Install Python dependencies
