@@ -173,7 +173,9 @@ fi
 # Install Python dependencies
 pip install -r "$project_dir/requirements.txt"
 # Copy the 'config' directory to /opt/
-sudo cp -a "$project_config_dir" /opt/
+#sudo cp -a "$project_config_dir" "$base_directory"
+sudo rsync -av --exclude='.*' "$project_config_dir"/* "$config_dir"
+
 
 # Function to update service file with correct parameters
 update_service_file() 
