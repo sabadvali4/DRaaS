@@ -1,15 +1,29 @@
 #!/bin/bash
 
 DATE=$(date "+%Y%m%d%H%M")
-
+BASEDIR="/opt/DRaaS"
+config_file="/opt/DRaaS/config/draas_config.ini"
 # File to store project directory and venv flag
-config_file="../config/draas_config.ini"
+if [ -f /opt/DRaaS/config/draas_config.ini ]; then  
+else
+	echo "Config file found"
+	if [ -d ${BASEDIR}/config ]; then
+		echo "Found ${BASEDIR}/config directory"
+	else
+		sudo mkdir -p ${BASEDIR}/config
+	fi
+fi
 
 # Log file path
 log_file="/var/log/update_script.log"
 
 # Back up folder
-backup_dir="/opt/drass"
+backup_dir="${BASEDIR}/backup"
+if [ -d ${backup_dir} ]; then
+	echo "Found ${backup_dir} directory"
+else
+	sudo mkdir -p ${backup_dir}
+fi
 
 echo "Started sync at ${DATE}"  >> "$log_file"
 
@@ -94,8 +108,8 @@ copy_file() {
 # Check if the tmp directory exists, if not, create it
 tmp_dir="/tmp/scripts"
 if [ ! -d "$tmp_dir" ]; then
-    sudo mkdir -p "$tmp_dir"
-    sudo chmod a+rw "$tmp_dir" -R 
+    mkdir -p "$tmp_dir"
+    chmod a+rw "$tmp_dir" -R 
 fi
 
 copy_file "$project_dir/producer.py" "/tmp/scripts/producer.py.old"
