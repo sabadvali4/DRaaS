@@ -29,6 +29,7 @@ if [ -d ${backup_dir} ]; then
 	echo "Found ${backup_dir} directory"
 else
 	sudo mkdir -p ${backup_dir}
+    sudo chmod a+rw ${backup_dir} -R
 fi
 
 sudo apt-get install python3-venv
@@ -115,11 +116,6 @@ if [ -z "$ini_file" ]; then
     exit 1
 fi
 
-# Check if the backup directory exists, if not, create it
-if [ ! -d "$backup_dir/config" ]; then
-    sudo mkdir -p "$backup_dir/config"
-    sudo chmod a+rw "$backup_dir/config" -R 
-fi
 backup_file="$backup_dir/config/parameters_backup.ini"
 
 # Copy the parameters.ini file to the backup directory
@@ -185,7 +181,7 @@ update_service_file()
     local service_file="$1"
     local user_param="User=$user"
     local wd_param="WorkingDirectory=$project_dir"
-    local exec_param="ExecStart=$project_dir/venv/bin/python $project_dir/$2.py"
+    local exec_param="ExecStart=$base_directory/venv/bin/python $project_dir/$2.py"
 
     local local_service_file="$project_dir/$2.service"
 
