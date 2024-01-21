@@ -43,14 +43,19 @@ get_project_info()
 	    exit 1 
     fi
 
-    if [ ! -d $backup_dir/venv ]; then
-        echo "Setting up virtual environment..." >> "$log_file"
-        python3 -m venv "$backup_dir/venv"
-    	source "$backup_dir/venv/bin/activate"
+    # Activate virtual environment if it exists
+    if [ -f "$config_file" ]; then
+        source $config_file
+        if [-n "$venv_dir" ]; then
+            echo "Config file is existing along with venv dir: $venv_dir" >> "$log_file"
+            source "$venv_dir/bin/activate"
+        else
+            create_venv
     else
-    	source "$backup_dir/venv/bin/activate"
-    fi 
-    echo "project_dir=$project_dir" > "$config_file"
+        # Create and activate virtual environment if it doesn't exist
+        echo "No config file. Need to create the venv" >> "$log_file"
+        create_venv
+    fi
 }
 
 # Function to ask the user about the "whoami" command for the user parameter
@@ -74,6 +79,7 @@ create_venv() {
             mkdir -p "$venv_dir"
             python3 -m venv "$venv_dir"
             source "$venv_dir/bin/activate"
+            echo "venv_dir=${venv_dir}" >> "$backup_dir/venv/venv.ini"
             echo "venv_dir=${venv_dir}" >> "$config_file"
         else
             echo "Using existing virtual environment in $venv_dir." >> "$log_file"
@@ -85,11 +91,10 @@ create_venv() {
         mkdir -p "$venv_dir"
         python3 -m venv "$venv_dir"
         source "$venv_dir/bin/activate"
+        echo "venv_dir=${venv_dir}" >> "$backup_dir/venv/venv.ini"
         echo "venv_dir=${venv_dir}" >> "$config_file"
     fi
 }
-
-create_venv
 
 # Check if the project information is saved, otherwise ask the user
 if [ -f "$config_file" ]; then
@@ -101,8 +106,8 @@ fi
 echo "$project_dir" >> "$log_file"
 
 # Find the configuration file under the 'config' directory
-config_dir="$project_dir/config/"
-ini_file="$(find "$config_dir" -maxdepth 1 -type f -iname "*.ini" -print -quit)"
+project_config_dir="$project_dir/config/"
+ini_file="$(find "$project_config_dir" -maxdepth 1 -type f -iname "*.ini" -print -quit)"
 
 # Check if the parameters.ini file was found
 if [ -z "$ini_file" ]; then
@@ -172,7 +177,7 @@ fi
 # Install Python dependencies
 pip install -r "$project_dir/requirements.txt"
 # Copy the 'config' directory to /opt/
-sudo cp -a "$config_dir" /opt/
+sudo cp -a "$project_config_dir" /opt/
 
 # Function to update service file with correct parameters
 update_service_file() 
