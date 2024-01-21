@@ -3,7 +3,6 @@ netmiko
 configparser
 confparser
 Flask
-redis
 flasgger
 requests
 netmiko

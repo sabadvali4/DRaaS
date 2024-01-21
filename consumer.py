@@ -9,6 +9,8 @@ import settings
 from settings import *
 settings.init()
 
+###TESTING THE UPDATE SCRIPT
+
 # Create a Redis server connections.
 redis_server = redis.Redis()
 queue_name = glv.queue_name
