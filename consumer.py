@@ -10,6 +10,7 @@ from settings import *
 settings.init()
 
 ###TESTING THE UPDATE SCRIPT
+###Second Testing for update script
 
 # Create a Redis server connections.
 redis_server = redis.Redis()

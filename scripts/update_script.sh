@@ -165,6 +165,7 @@ if [ -f "$config_file" ]; then
     source $config_file
     if [ -n "$venv_dir" ]; then
         source "$venv_dir/bin/activate"
+    fi
 else
     # Create and activate virtual environment if it doesn't exist
     create_venv
