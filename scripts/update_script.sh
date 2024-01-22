@@ -148,6 +148,7 @@ copy_file "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old"
 
 # Ensure you are on the main branch
 git checkout main
+git fetch origin main
 
 # Check if the local branch is already up-to-date with the remote branch
 if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
@@ -156,7 +157,6 @@ if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
 else
     # Fetch and reset to the remote main branch
     git stash
-    git fetch origin main
     git pull origin main
 fi
 
