@@ -2,6 +2,7 @@
 import requests
 import json
 
+
 """ get Token """
 def get_token(APIC):  
   url = f"https://{APIC}/api/aaaLogin.json"
