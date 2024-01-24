@@ -77,6 +77,13 @@ def get_gaia_interface_info(ip, user, password):
     connection.close_connection()
     return json_data
 
+def get_gaia_hostname(ip,user,password):
+    connection = SSHConnection(ip, user, password)
+    time.sleep(1)
+    output = connection.exec_command('show hostname')
+    return output
+
+
 def parse_gaia_output(output):
     interfaces = {}
     current_interface = None

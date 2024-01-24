@@ -268,9 +268,13 @@ def main():
                             if discovery == "1":
                                 gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
                                 gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                                hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
+
                                 interface_dict = json.loads(gaia_interface_info)
                                 route_dict = json.loads(gaia_route_info)
-                                combined_data = {"interfaces": interface_dict, "routes": route_dict}
+                                hostname = hostname[0].strip() if hostname else None
+
+                                combined_data = {"hostname": hostname, "interfaces": interface_dict, "routes": route_dict}
                                 json_data = json.dumps(combined_data, indent=4)
                                 output = json_data
 
