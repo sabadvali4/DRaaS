@@ -233,8 +233,9 @@ def main():
                                     action = "removed"
 
                                 gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
+                                hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
                                 interface_dict = json.loads(gaia_interface_info)
-                                combined_data = {"interfaces": interface_dict}
+                                combined_data = {"hostname": hostname, "interfaces": interface_dict}
                                 json_data = json.dumps(combined_data, indent=4)
 
                                 status_message = "status: success"
@@ -254,8 +255,9 @@ def main():
                                     action = "removed"
 
                                 gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                                hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
                                 route_dict = json.loads(gaia_route_info)
-                                combined_data = {"routes": route_dict}
+                                combined_data = {"hostname": hostname,"routes": route_dict}
                                 json_data = json.dumps(combined_data, indent=4)
                                 
                                 status_message="status: success"
