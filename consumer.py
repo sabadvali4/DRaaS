@@ -103,11 +103,12 @@ def main():
                 discovery=json_req["discovery"]
                 destination=json_req["destination"]
                 gateway=json_req["gateway"]
+
+                vlan_ip = json_req["ip"]
+                vlan_subnet = json_req["subnet"]
+
                 api_status = get_id_status(req_id)
                 api_dr_status = api_status[0]['dr_status']
-
-                vlan_ip = json_req['IP']
-                vlan_subnet = json_req['Subnet']
 
                 print(f"api_status: {api_dr_status}")
                 if 'failed' in api_dr_status:

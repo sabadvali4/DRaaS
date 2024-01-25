@@ -32,11 +32,11 @@ class SSHConnection:
     def create_vlan(self, physical_interface, vlan_ids,vlan_ip,vlan_subnet):
         try:
             for vlan_id in vlan_ids:
-                command = f"add interface {physical_interface} vlan {vlan_id}"
-                self.send_shell(command)
+                command_create_vlan = f"add interface {physical_interface} vlan {vlan_id}"
+                self.send_shell(command_create_vlan)
                 time.sleep(1)
-                command = f"set interface {physical_interface}.{vlan_id} ipv4-address {vlan_ip} subnet-mask {vlan_subnet}"
-                self.send_shell(command)
+                command_configure_ip = f"set interface {physical_interface}.{vlan_id} ipv4-address {vlan_ip} subnet-mask {vlan_subnet}"
+                self.send_shell(command_configure_ip)
                 time.sleep(1)
                 print(f"VLAN {vlan_id} added successfully to interface {physical_interface}.")
 
@@ -163,7 +163,8 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan_list, vlan_ip, vl
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
-
+    connection.send_shell(f'lock database override')
+    time.sleep(1)
     if isinstance(vlan_list, int):
         # If a single VLAN ID is provided, convert it to a list
         vlan_list = [vlan_list]
