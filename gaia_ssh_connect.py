@@ -31,6 +31,7 @@ class SSHConnection:
 
     def create_vlan(self, physical_interface, vlan_id ,vlan_ip,vlan_subnet):
         try:
+            print(vlan_id)
             command_create_vlan = f"add interface {physical_interface} vlan {vlan_id}"
             self.send_shell(command_create_vlan)
             time.sleep(1)
@@ -164,7 +165,8 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_su
     time.sleep(1)
     # connection.send_shell(f'lock database override')
     # time.sleep(1)
-
+    int(vlan)
+    print(vlan)
     connection.create_vlan(physical_interface, vlan, vlan_ip, vlan_subnet)
     connection.close_connection()
 
