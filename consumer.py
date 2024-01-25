@@ -9,15 +9,13 @@ import settings
 from settings import *
 settings.init()
 
-###TESTING THE UPDATE SCRIPT
-###Second Testing for update script
-
 # Create a Redis server connections.
 redis_server = redis.Redis()
 queue_name = glv.queue_name
 incompleted_tasks = glv.incompleted_tasks
+completed_tasks = glv.completed_tasks
 credential_dict = glv.credential_dict
-
+failed_tasks = glv.failed_tasks
 current_task_que = "current_task_que"
 switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
@@ -108,9 +106,13 @@ def main():
                 api_status = get_id_status(req_id)
                 api_dr_status = api_status[0]['dr_status']
 
+                vlan_ip = json_req['ip']
+                vlan_subnet = json_req['subnet']
+
                 print(f"api_status: {api_dr_status}")
                 if 'failed' in api_dr_status:
                   redis_set(req_id, "failed")
+                  redis_server.rpush(failed_tasks, str(json_req))
                   continue
 
                 if json_req["command"] != "":
@@ -226,7 +228,7 @@ def main():
                             ##VLAN add/remove
                             if discovery == "0" and req_interface_name and req_vlans:
                                 if req_cmd.lower() == "add vlan":
-                                    gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
+                                    gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans, vlan_ip, vlan_subnet)
                                     action = "added"
                                 elif req_cmd.lower() == "delete vlan":
                                     gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
@@ -291,6 +293,7 @@ def main():
                     send_status_update(req_id, "failed", "Could not find switch for IP")
 
         elif "completed" in str(task_status):
+                redis_server.rpush(completed_tasks, str(json_req))
                 continue
         sleep(10)
 

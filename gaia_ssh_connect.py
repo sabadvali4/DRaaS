@@ -29,10 +29,13 @@ class SSHConnection:
         else:
             print("Shell not opened.")
 
-    def create_vlan(self, physical_interface, vlan_ids):
+    def create_vlan(self, physical_interface, vlan_ids,vlan_ip,vlan_subnet):
         try:
             for vlan_id in vlan_ids:
                 command = f"add interface {physical_interface} vlan {vlan_id}"
+                self.send_shell(command)
+                time.sleep(1)
+                command = f"set interface {physical_interface}.{vlan_id} ipv4-address {vlan_ip} subnet-mask {vlan_subnet}"
                 self.send_shell(command)
                 time.sleep(1)
                 print(f"VLAN {vlan_id} added successfully to interface {physical_interface}.")
@@ -156,7 +159,7 @@ def expand_vlan_ranges(vlan_list):
             expanded.append(int(item))
     return expanded
 
-def add_gaia_vlan(ip, user, password, physical_interface, vlan_list):
+def add_gaia_vlan(ip, user, password, physical_interface, vlan_list, vlan_ip, vlan_subnet):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
@@ -166,7 +169,7 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan_list):
         vlan_list = [vlan_list]
     print("list:", vlan_list)
     expanded_vlans = expand_vlan_ranges(vlan_list)
-    connection.create_vlan(physical_interface, expanded_vlans)
+    connection.create_vlan(physical_interface, expanded_vlans, vlan_ip, vlan_subnet)
     connection.close_connection()
 
 
