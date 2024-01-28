@@ -66,6 +66,16 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
     except Exception as e:
         logger.error('Error in send_health_monitoring_update: %s', str(e))
 
+def cleanup_redis():
+    # Cleanup failed tasks
+    failed_count = redis_server.llen(failed_tasks)
+    if failed_count > 0:
+        logger.info("Cleaning up failed tasks...")
+        for _ in range(failed_count):
+            task = redis_server.lpop(failed_tasks)
+            if task:
+                redis_server.delete(task)
+
 def redis_queue_push(task):
     record_id=task["record_id"]
     print(f"record_id: {record_id}")
@@ -109,29 +119,35 @@ def redis_queue_push(task):
     except Exception as e:
         logger.error('Error in redis_queue_push: %s', str(e))
 
+last_cleanup_time = None
 if __name__ == "__main__":
     while True:
-        # Get the value of 'Enabled' from Redis
         enabled_value = redis_server.get("Enabled")
-        # If 'Enabled' is False, skip processing tasks
         if enabled_value and not bool(int(enabled_value.decode())):
             logger.info("Processing is disabled. Waiting for 'Enabled' to be True.")
             sleep(5)
             continue
 
-        # Get the tasks from the API
+        if last_cleanup_time is None or (datetime.now() - last_cleanup_time).seconds >= 3600:
+            cleanup_redis()
+            last_cleanup_time = datetime.now()
+
         tasks = get_requests()
+
         for task in tasks:
             if task['mid_name'] == settings.mid_server:
                 record_id=task["record_id"]
                 # Push task to the Redis queue
                 redis_queue_push(task)
 
-        items_in_progress = redis_server.llen(queue_name)
+        items_in_queue = redis_server.llen(queue_name)
+        #items_in_progress = len(tasks) - items_in_queue
+        items_in_progress = sum(1 for task in tasks if task['dr_status'] == 'active')
         items_failed = redis_server.llen(failed_tasks)
         items_incomplete = redis_server.llen(incompleted_tasks)
         Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')
 
-        print(f"{settings.mid_server}, {len(tasks)} , {items_in_progress}, {items_failed} ,{items_incomplete} ,{Timestamp}")
-        send_health_monitoring_update(settings.mid_server, len(tasks) , items_in_progress, items_failed, items_incomplete ,Timestamp)
+        logger.info("%s, %s, %s, %s, %s, %s", settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)        
+        
+        send_health_monitoring_update(settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)
         sleep(10)
