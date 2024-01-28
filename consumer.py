@@ -113,7 +113,6 @@ def main():
                 print(f"api_status: {api_dr_status}")
                 if 'failed' in api_dr_status:
                   redis_set(req_id, "failed")
-                  redis_server.rpush(failed_tasks, str(json_req))
                   continue
 
                 if json_req["command"] != "":
