@@ -29,13 +29,16 @@ class SSHConnection:
         else:
             print("Shell not opened.")
 
-    def create_vlan(self, physical_interface, vlan_ids):
+    def create_vlan(self, physical_interface, vlan_id ,vlan_ip,vlan_subnet):
         try:
-            for vlan_id in vlan_ids:
-                command = f"add interface {physical_interface} vlan {vlan_id}"
-                self.send_shell(command)
-                time.sleep(1)
-                print(f"VLAN {vlan_id} added successfully to interface {physical_interface}.")
+            print(vlan_id)
+            command_create_vlan = f"add interface {physical_interface} vlan {vlan_id}"
+            self.send_shell(command_create_vlan)
+            time.sleep(1)
+            command_configure_ip = f"set interface {physical_interface}.{vlan_id} ipv4-address {vlan_ip} subnet-mask {vlan_subnet}"
+            self.send_shell(command_configure_ip)
+            time.sleep(1)
+            print(f"VLAN {vlan_id} added successfully to interface {physical_interface}.")
 
             command = f"save config"
             self.send_shell(command)
@@ -76,6 +79,13 @@ def get_gaia_interface_info(ip, user, password):
 
     connection.close_connection()
     return json_data
+
+def get_gaia_hostname(ip,user,password):
+    connection = SSHConnection(ip, user, password)
+    time.sleep(1)
+    output = connection.exec_command('show hostname')
+    return output
+
 
 def parse_gaia_output(output):
     interfaces = {}
@@ -139,29 +149,26 @@ def parse_gaia_route_output(output):
             routes.append(route_entry)
     return routes
 
-def expand_vlan_ranges(vlan_list):
-    expanded = []
-    for item in vlan_list:
-        if '-' in item:
-            start, end = item.split('-')
-            expanded.extend(range(int(start), int(end) + 1))
-        else:
-            expanded.append(int(item))
-    return expanded
+# def expand_vlan_ranges(vlan_list):
+#     expanded = []
+#     for item in vlan_list:
+#         if '-' in item:
+#             start, end = item.split('-')
+#             expanded.extend(range(int(start), int(end) + 1))
+#         else:
+#             expanded.append(int(item))
+#     return expanded
 
-def add_gaia_vlan(ip, user, password, physical_interface, vlan_list):
+def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_subnet):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
-
-    if isinstance(vlan_list, int):
-        # If a single VLAN ID is provided, convert it to a list
-        vlan_list = [vlan_list]
-    print("list:", vlan_list)
-    expanded_vlans = expand_vlan_ranges(vlan_list)
-    connection.create_vlan(physical_interface, expanded_vlans)
+    # connection.send_shell(f'lock database override')
+    # time.sleep(1)
+    int(vlan)
+    print(vlan)
+    connection.create_vlan(physical_interface, vlan, vlan_ip, vlan_subnet)
     connection.close_connection()
-
 
 def remove_gaia_vlan(ip, user, password , physical_interface, vlan_list):
     connection = SSHConnection(ip, user, password)

@@ -9,15 +9,13 @@ import settings
 from settings import *
 settings.init()
 
-###TESTING THE UPDATE SCRIPT
-###Second Testing for update script
-
 # Create a Redis server connections.
 redis_server = redis.Redis()
 queue_name = glv.queue_name
 incompleted_tasks = glv.incompleted_tasks
+completed_tasks = glv.completed_tasks
 credential_dict = glv.credential_dict
-
+failed_tasks = glv.failed_tasks
 current_task_que = "current_task_que"
 switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
@@ -105,12 +103,17 @@ def main():
                 discovery=json_req["discovery"]
                 destination=json_req["destination"]
                 gateway=json_req["gateway"]
+
+                vlan_ip = json_req["ip"]
+                vlan_subnet = json_req["subnet"]
+
                 api_status = get_id_status(req_id)
                 api_dr_status = api_status[0]['dr_status']
 
                 print(f"api_status: {api_dr_status}")
                 if 'failed' in api_dr_status:
                   redis_set(req_id, "failed")
+                  redis_server.rpush(failed_tasks, str(json_req))
                   continue
 
                 if json_req["command"] != "":
@@ -226,15 +229,16 @@ def main():
                             ##VLAN add/remove
                             if discovery == "0" and req_interface_name and req_vlans:
                                 if req_cmd.lower() == "add vlan":
-                                    gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
+                                    gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans, vlan_ip, vlan_subnet)
                                     action = "added"
                                 elif req_cmd.lower() == "delete vlan":
                                     gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "removed"
 
                                 gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
+                                hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
                                 interface_dict = json.loads(gaia_interface_info)
-                                combined_data = {"interfaces": interface_dict}
+                                combined_data = {"hostname": hostname, "interfaces": interface_dict}
                                 json_data = json.dumps(combined_data, indent=4)
 
                                 status_message = "status: success"
@@ -254,8 +258,9 @@ def main():
                                     action = "removed"
 
                                 gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                                hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
                                 route_dict = json.loads(gaia_route_info)
-                                combined_data = {"routes": route_dict}
+                                combined_data = {"hostname": hostname,"routes": route_dict}
                                 json_data = json.dumps(combined_data, indent=4)
                                 
                                 status_message="status: success"
@@ -268,9 +273,13 @@ def main():
                             if discovery == "1":
                                 gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
                                 gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                                hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
+
                                 interface_dict = json.loads(gaia_interface_info)
                                 route_dict = json.loads(gaia_route_info)
-                                combined_data = {"interfaces": interface_dict, "routes": route_dict}
+                                hostname = hostname[0].strip() if hostname else None
+
+                                combined_data = {"hostname": hostname, "interfaces": interface_dict, "routes": route_dict}
                                 json_data = json.dumps(combined_data, indent=4)
                                 output = json_data
 
@@ -285,6 +294,7 @@ def main():
                     send_status_update(req_id, "failed", "Could not find switch for IP")
 
         elif "completed" in str(task_status):
+                redis_server.rpush(completed_tasks, str(json_req))
                 continue
         sleep(10)
 

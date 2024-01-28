@@ -57,7 +57,7 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
                 "items_in_queue": items_in_queue,
                 "items_in_process": items_in_process,
                 "items_failed": items_failed,
-                "items_incompleted": items_incomplete,
+                "items_incomplete": items_incomplete,
                 "timestamp": Timestamp
             })
         print(payload)
