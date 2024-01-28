@@ -140,8 +140,9 @@ if __name__ == "__main__":
                 # Push task to the Redis queue
                 redis_queue_push(task)
 
-        items_in_queue = redis_server.llen(queue_name)
-        #items_in_progress = len(tasks) - items_in_queue
+        tasks_for_mid_server = [task for task in tasks if task['mid_name'] == settings.mid_server]
+        items_in_queue = len(tasks_for_mid_server)
+        
         items_in_progress = sum(1 for task in tasks if task['dr_status'] == 'active')
         items_failed = redis_server.llen(failed_tasks)
         items_incomplete = redis_server.llen(incompleted_tasks)

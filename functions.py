@@ -12,6 +12,9 @@ config.read('./config/parameters.ini')
 
 logger = logging.getLogger(__name__)
 redis_server = redis.Redis()
+queue_name = glv.queue_name
+completed_tasks = glv.completed_tasks
+failed_tasks = glv.failed_tasks
 incompleted_tasks = glv.incompleted_tasks
 update_req_url = settings.url + "/SetCommandStatus"
 added_vlan = glv.added_vlan
@@ -150,6 +153,20 @@ def redis_set(KEY="", VALUE="", OUTPUT=""):
         redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
         #print(redis_server.get(KEY))
         logger.info('Redis set - Key: %s, Value: %s', KEY, VALUE)
+
+        # Check the status and push the task to the appropriate queue
+        task_info = redis_server.get(KEY)
+        if task_info:
+            task_status = json.loads(task_info.decode()).get("status")
+            if task_status == "completed":
+                redis_server.rpush(completed_tasks, KEY)
+            elif task_status == "failed":
+                redis_server.rpush(failed_tasks, KEY)
+            elif task_status == "active":
+                redis_server.rpush(queue_name, KEY)
+        else:
+            logger.warning('No information found for key: %s', KEY)
+
     except Exception as e:
         logger.error('Error in redis_set: %s', str(e))
 
