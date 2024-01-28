@@ -102,9 +102,8 @@ def redis_queue_push(task):
                         redis_server.rpush(queue_name, str(task))
 
                     #failed task
-                    elif "failed" in job_status["status"]:
-                        print("Task is in failed status.")
-                        redis_server.rpush(failed_tasks, str(task))
+                    if task["record_id"] not in [json.loads(t)["record_id"] for t in redis_server.lrange(failed_tasks,0,-1)]:
+                        redis_server.rpush(failed_tasks, json.dumps(task))
 
                 else:
                      #TODO when job is none?
@@ -142,7 +141,7 @@ if __name__ == "__main__":
 
         tasks_for_mid_server = [task for task in tasks if task['mid_name'] == settings.mid_server]
         items_in_queue = len(tasks_for_mid_server)
-        
+
         items_in_progress = sum(1 for task in tasks if task['dr_status'] == 'active')
         items_failed = redis_server.llen(failed_tasks)
         items_incomplete = redis_server.llen(incompleted_tasks)
