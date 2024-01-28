@@ -149,15 +149,6 @@ def parse_gaia_route_output(output):
             routes.append(route_entry)
     return routes
 
-# def expand_vlan_ranges(vlan_list):
-#     expanded = []
-#     for item in vlan_list:
-#         if '-' in item:
-#             start, end = item.split('-')
-#             expanded.extend(range(int(start), int(end) + 1))
-#         else:
-#             expanded.append(int(item))
-#     return expanded
 
 def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_subnet):
     connection = SSHConnection(ip, user, password)
@@ -170,20 +161,15 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_su
     connection.create_vlan(physical_interface, vlan, vlan_ip, vlan_subnet)
     connection.close_connection()
 
-def remove_gaia_vlan(ip, user, password , physical_interface, vlan_list):
+def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
 
-    if isinstance(vlan_list, int):
-        # If a single VLAN ID is provided, convert it to a list
-        vlan_list = [vlan_list]
-
-    expanded_vlans = expand_vlan_ranges(vlan_list)
-    for vlan_id in expanded_vlans:
-        connection.send_shell(f'delete interface {physical_interface} vlan {vlan_id}')
-        time.sleep(1)
-        print(f"VLAN {vlan_id} deleted successfully from interface {physical_interface}.")
+    connection.send_shell(f'delete interface {physical_interface} vlan {vlan_id}')
+    time.sleep(1)
+    print(f"VLAN {vlan_id} deleted successfully from interface {physical_interface}.")
+    
     connection.send_shell('save config')
     time.sleep(2)
     connection.close_connection()
