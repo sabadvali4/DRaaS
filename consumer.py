@@ -51,7 +51,7 @@ def redis_queue_get(queue_name):
         print(req)
         if req is not None:
             logger.info('Redis queue get - Request: %s', req.decode())
-            send_logs_to_api(f'Redis queue get - Request: {req.decode()}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+            send_logs_to_api(f'Redis queue get - Request: {req}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
             return req.decode()
         else:
             return None
