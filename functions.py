@@ -212,7 +212,7 @@ def valid_response_code(statusCode,ID):
         redis_server.rpush(incompleted_tasks, ID)
 
 def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
-    send_logs_to_api(f'Sended new status for the task of: {status_message}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+    
     if status_message == "status: success" and error is None:
         if output_message is not None:
             output = f"{status_message}\n{output_message}\n{output}"
@@ -231,7 +231,6 @@ def send_successORfailed_status(req_id, status_message=None, output_message=None
             update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")    
 
 def send_gaia_status(req_id, status_message=None, output=None, error=None, req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None):
-    send_logs_to_api(f'Sended new status for the task of: {status_message}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
     if status_message == "status: success":
         redis_set(req_id, "completed", output)
         task_status = json.loads(redis_server.get(req_id).decode())["status"]
