@@ -14,6 +14,9 @@ redis_server = redis.Redis(host='localhost', port=6379, db=0)
 # Set the value of Enabled to Redis when the script starts
 redis_server.set("Enabled", int(glv.Enabled))
 
+# Initialize empty list to store log messages
+log_messages = []
+
 queue_name = glv.queue_name
 failed_tasks=glv.failed_tasks
 completed_tasks=glv.completed_tasks
@@ -38,7 +41,7 @@ try:
     journald_handler.setFormatter(logging.Formatter(fmt=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format))
 
     # Add the journald handler to the current logger
-    logger.addHandler(journald_handler)
+    logger.addHandler(APILogHandler(settings.mid_name))
 
 except ImportError:
     # systemd.journal module is not available, use basic console logging

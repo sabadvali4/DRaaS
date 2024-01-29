@@ -21,6 +21,7 @@ switch_info_url = settings.switch_info_url
 get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 get_id_url = settings.url + "/getCommandByID"
+Managment_Logs = settings.url + "/postSwitchManagmentLogs"
 
 # this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)

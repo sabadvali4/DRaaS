@@ -17,8 +17,42 @@ completed_tasks = glv.completed_tasks
 failed_tasks = glv.failed_tasks
 incompleted_tasks = glv.incompleted_tasks
 update_req_url = settings.url + "/SetCommandStatus"
+managment_logs_url = settings.url + "/postSwitchManagmentLogs"
 added_vlan = glv.added_vlan
 credential_dict = glv.credential_dict
+
+
+# Custom log handler class to send log messages to the API
+class APILogHandler(logging.Handler):
+    def __init__(self, source):
+        super().__init__()
+        self.source = source
+
+    def emit(self, record):
+        try:
+            message = self.format(record)
+            timestamp = datetime.fromtimestamp(record.created).strftime('%d/%m/%Y %I:%M:%S %p')
+            message_id = f"{record.created}-{hash(message)}"  # Generate a unique message ID
+
+            # Map logging levels to severity strings
+            severity = {
+                logging.INFO: "info",
+                logging.WARNING: "warning",
+                logging.ERROR: "error"
+            }.get(record.levelno, "unknown")
+
+            payload = {
+                "message": message,
+                "severity": severity,
+                "source": self.source,
+                "timestamp": timestamp,
+                "message_id": message_id
+            }
+            response = requests.post(managment_logs_url, json=payload, auth=(settings.username, settings.password))
+            response.raise_for_status()
+        except Exception as e:
+            logger.error("Error occurred while sending log to API: %s", e)
+
 #SSH connection function
 class SSHClient:
     MAX_RETRIES = 3
@@ -183,6 +217,20 @@ def send_status_update(ID, STATUS, OUTPUT):
     response = requests.post(update_req_url, data=payload, headers={'Content-Type': 'application/json'},
                            auth=(settings.username, settings.password))
     valid_response_code(response.status_code, ID)
+
+# def send_logs_to_api(message, severity, source, timestamp, message_id):
+#     try:
+#         payload = json.dumps({
+#             "message": message,
+#             "severity": severity,
+#             "source": source,
+#             "timestamp": timestamp,
+#             "message_id": message_id})
+#         print(payload)
+#         answer = requests.post(Managment_Logs, data=payload,
+#                                headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
+#     except Exception as e:
+#         logger.error("Error occurred while sending log to API: %s", str(e))
 
 def valid_response_code(statusCode,ID):
     if statusCode != 200:
