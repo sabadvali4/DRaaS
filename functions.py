@@ -48,7 +48,8 @@ class APILogHandler(logging.Handler):
                 "timestamp": timestamp,
                 "message_id": message_id
             }
-            response = requests.post(managment_logs_url, json=payload, auth=(settings.username, settings.password))
+            response = requests.post(managment_logs_url, data=payload,
+                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
             response.raise_for_status()
         except Exception as e:
             logger.error("Error occurred while sending log to API: %s", e)
@@ -227,7 +228,7 @@ def send_status_update(ID, STATUS, OUTPUT):
 #             "timestamp": timestamp,
 #             "message_id": message_id})
 #         print(payload)
-#         answer = requests.post(Managment_Logs, data=payload,
+#         answer = requests.post(managment_logs_url, data=payload,
 #                                headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
 #     except Exception as e:
 #         logger.error("Error occurred while sending log to API: %s", str(e))
