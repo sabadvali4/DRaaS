@@ -141,6 +141,6 @@ if __name__ == "__main__":
         Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')
 
         logger.info("%s, %s, %s, %s, %s, %s", settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)        
-        
+        send_logs_to_api("testDRASS", 2, settings.mid_server, Timestamp)
         send_health_monitoring_update(settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)
         sleep(10)

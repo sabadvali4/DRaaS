@@ -219,19 +219,19 @@ def send_status_update(ID, STATUS, OUTPUT):
                            auth=(settings.username, settings.password))
     valid_response_code(response.status_code, ID)
 
-# def send_logs_to_api(message, severity, source, timestamp, message_id):
-#     try:
-#         payload = json.dumps({
-#             "message": message,
-#             "severity": severity,
-#             "source": source,
-#             "timestamp": timestamp,
-#             "message_id": message_id})
-#         print(payload)
-#         answer = requests.post(managment_logs_url, data=payload,
-#                                headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
-#     except Exception as e:
-#         logger.error("Error occurred while sending log to API: %s", str(e))
+def send_logs_to_api(message, severity, source, timestamp, message_id):
+    try:
+        payload = json.dumps({
+            "message": message,
+            "severity": severity,
+            "source": source,
+            "timestamp": timestamp,
+            "message_id": "123"})
+        print(payload)
+        answer = requests.post(managment_logs_url, data=payload,
+                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
+    except Exception as e:
+        logger.error("Error occurred while sending log to API: %s", str(e))
 
 def valid_response_code(statusCode,ID):
     if statusCode != 200:
