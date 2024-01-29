@@ -118,6 +118,7 @@ def redis_queue_push(task):
                      print(f'added {task["record_id"]} to queue')
 
     except Exception as e:
+        send_logs_to_api(f'Error in redis_queue_push: {str(e)}', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
         logger.error('Error in redis_queue_push: %s', str(e))
 
 last_cleanup_time = None
@@ -126,11 +127,13 @@ if __name__ == "__main__":
         enabled_value = redis_server.get("Enabled")
         if enabled_value and not bool(int(enabled_value.decode())):
             logger.info("Processing is disabled. Waiting for 'Enabled' to be True.")
+            send_logs_to_api(f'Processing is disabled. Waiting for Enabled to be True.', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
             sleep(5)
             continue
 
         if last_cleanup_time is None or (datetime.now() - last_cleanup_time).seconds >= 3600:
             cleanup_redis()
+            send_logs_to_api(f'Cleaning up the failed redis queue', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
             last_cleanup_time = datetime.now()
 
         tasks = get_requests()
@@ -150,7 +153,6 @@ if __name__ == "__main__":
         Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')
 
         logger.info("%s, %s, %s, %s, %s, %s", settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)        
-        
-        
+
         send_health_monitoring_update(settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)
         sleep(10)

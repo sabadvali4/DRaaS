@@ -155,6 +155,7 @@ def redis_set(KEY="", VALUE="", OUTPUT=""):
         redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
         #print(redis_server.get(KEY))
         logger.info('Redis set - Key: %s, Value: %s', KEY, VALUE)
+        send_logs_to_api(f'Redis set - Key: {KEY}, Value: {VALUE}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
 
         # Check the status and push the task to the appropriate queue
         task_info = redis_server.get(KEY)
@@ -168,8 +169,11 @@ def redis_set(KEY="", VALUE="", OUTPUT=""):
                 redis_server.rpush(queue_name, KEY)
         else:
             logger.warning('No information found for key: %s', KEY)
+            send_logs_to_api(f'No information found for key: {KEY}', 'warning', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+
 
     except Exception as e:
+        send_logs_to_api(f'Error in updating API', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
         logger.error('Error in redis_set: %s', str(e))
 
 # Function to update the credentials dictionary with the status
@@ -204,6 +208,7 @@ def valid_response_code(statusCode,ID):
     if statusCode != 200:
         print("Api is not accesble. StatusCode is:", statusCode)
         logger.error('Error in updating API')
+        send_logs_to_api(f'Error in updating API', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
         redis_server.rpush(incompleted_tasks, ID)
 
 def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
