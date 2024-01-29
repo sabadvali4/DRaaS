@@ -23,19 +23,26 @@ get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 update_status_url= settings.url + "/postHealthMonitoring"
 
-
+# this module will be used to get an instance of the logger object 
 logger = logging.getLogger(__name__)
+# Define the time format
 time_format = glv.time_format
+# Optionally set the logging level
 logger.setLevel(logging.DEBUG)
-
 try:
     from systemd.journal import JournaldLogHandler
-    journald_handler = JournaldLogHandler()
-    journald_handler.setFormatter(logging.Formatter(fmt=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format))
-    logger.addHandler(APILogHandler(settings.mid_name))
-except ImportError:
-    logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
 
+    # Instantiate the JournaldLogHandler to hook into systemd
+    journald_handler = JournaldLogHandler()
+
+    journald_handler.setFormatter(logging.Formatter(fmt=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format))
+
+    # Add the journald handler to the current logger
+    logger.addHandler(journald_handler)
+
+except ImportError:
+    # systemd.journal module is not available, use basic console logging
+    logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
 
 def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
@@ -56,7 +63,9 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
         print(payload)
         answer = requests.post(update_status_url, data=payload,
                                headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
+        send_logs_to_api(f'Sended info to send_health_monitoring_update: {payload}', 'info', settings.mid_name, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
     except Exception as e:
+        send_logs_to_api(f'Error in send_health_monitoring_update: {str(e)}', 'error', settings.mid_name, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
         logger.error('Error in send_health_monitoring_update: %s', str(e))
 
 def cleanup_redis():
@@ -141,6 +150,8 @@ if __name__ == "__main__":
         Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')
 
         logger.info("%s, %s, %s, %s, %s, %s", settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)        
+        
         send_logs_to_api("testDRASS", 2, settings.mid_server, Timestamp)
+        
         send_health_monitoring_update(settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)
         sleep(10)
