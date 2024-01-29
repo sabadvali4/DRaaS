@@ -51,13 +51,13 @@ def redis_queue_get(queue_name):
         print(req)
         if req is not None:
             logger.info('Redis queue get - Request: %s', req.decode())
-            send_logs_to_api(f'Redis queue get Request', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+            send_logs_to_api(f'Redis queue get Request', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
             return req.decode()
         else:
             return None
     except Exception as e:
         logger.error('Error in redis_queue_get: %s', str(e))
-        send_logs_to_api(f'Error in redis_queue_get: {str(e)}', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+        send_logs_to_api(f'Error in redis_queue_get: {str(e)}', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
         return None
 
 # Function to get credentials from the dictionary
