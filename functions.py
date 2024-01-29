@@ -221,6 +221,7 @@ def send_successORfailed_status(req_id, status_message=None, output_message=None
         task_status = json.loads(redis_server.get(req_id).decode())["status"]
         send_status_update(req_id, task_status, output)
         update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
+        send_logs_to_api(f'Sended new status for the task of: {status_message}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
         
     elif status_message == "status: failed":
         output = f"{status_message} {error}"
@@ -228,8 +229,8 @@ def send_successORfailed_status(req_id, status_message=None, output_message=None
         #Update the credentials with a "failed" status if not already present
         if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
             update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
-
-    send_logs_to_api(f'Sended new status for the task of: {status_message}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+        send_logs_to_api(f'Sended new status for the task of: {status_message}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+    
 
 def send_gaia_status(req_id, status_message=None, output=None, error=None, req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None):
     if status_message == "status: success":

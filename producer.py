@@ -63,7 +63,7 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
         print(payload)
         answer = requests.post(update_status_url, data=payload,
                                headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
-        send_logs_to_api(f'Sended info to send_health_monitoring_update: {payload}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+        #send_logs_to_api(f'Sended info to send_health_monitoring_update: {payload}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
     except Exception as e:
         send_logs_to_api(f'Error in send_health_monitoring_update: {str(e)}', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
         logger.error('Error in send_health_monitoring_update: %s', str(e))
