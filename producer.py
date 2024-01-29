@@ -14,9 +14,6 @@ redis_server = redis.Redis(host='localhost', port=6379, db=0)
 # Set the value of Enabled to Redis when the script starts
 redis_server.set("Enabled", int(glv.Enabled))
 
-# Initialize empty list to store log messages
-log_messages = []
-
 queue_name = glv.queue_name
 failed_tasks=glv.failed_tasks
 completed_tasks=glv.completed_tasks
@@ -26,26 +23,19 @@ get_cmds_url = settings.url + "/getCommands"
 update_req_url = settings.url + "/SetCommandStatus"
 update_status_url= settings.url + "/postHealthMonitoring"
 
-# this module will be used to get an instance of the logger object 
+
 logger = logging.getLogger(__name__)
-# Define the time format
 time_format = glv.time_format
-# Optionally set the logging level
 logger.setLevel(logging.DEBUG)
+
 try:
     from systemd.journal import JournaldLogHandler
-
-    # Instantiate the JournaldLogHandler to hook into systemd
     journald_handler = JournaldLogHandler()
-
     journald_handler.setFormatter(logging.Formatter(fmt=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format))
-
-    # Add the journald handler to the current logger
     logger.addHandler(APILogHandler(settings.mid_name))
-
 except ImportError:
-    # systemd.journal module is not available, use basic console logging
     logging.basicConfig(level=logging.DEBUG, format=f'%(asctime)s - %(levelname)-8s - %(message)s', datefmt=time_format)
+
 
 def get_requests():
     commands = requests.post(get_cmds_url, headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
