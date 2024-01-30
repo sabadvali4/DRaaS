@@ -12,7 +12,6 @@ config.read('./config/parameters.ini')
 
 logger = logging.getLogger(__name__)
 redis_server = redis.Redis()
-message_counter = glv.message_counter
 queue_name = glv.queue_name
 completed_tasks = glv.completed_tasks
 failed_tasks = glv.failed_tasks
@@ -191,9 +190,11 @@ def send_status_update(ID, STATUS, OUTPUT):
                            auth=(settings.username, settings.password))
     valid_response_code(response.status_code, ID)
 
+# Initialize the message counter
+message_counter = 0
 def send_logs_to_api(message, severity, source, timestamp):
     try:
-        glv.message_counter += 1
+        message_counter = (message_counter + 1) % 101
         message_id = f"{timestamp} - {message_counter}"
         payload = json.dumps({
             "message": message,
