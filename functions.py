@@ -17,8 +17,10 @@ completed_tasks = glv.completed_tasks
 failed_tasks = glv.failed_tasks
 incompleted_tasks = glv.incompleted_tasks
 update_req_url = settings.url + "/SetCommandStatus"
+managment_logs_url = settings.url + "/postSwitchManagmentLogs"
 added_vlan = glv.added_vlan
 credential_dict = glv.credential_dict
+
 #SSH connection function
 class SSHClient:
     MAX_RETRIES = 3
@@ -153,6 +155,7 @@ def redis_set(KEY="", VALUE="", OUTPUT=""):
         redis_server.set(name=KEY, value=f'{{ "status": "{VALUE}", "output": "{OUTPUT}" }}')
         #print(redis_server.get(KEY))
         logger.info('Redis set - Key: %s, Value: %s', KEY, VALUE)
+        send_logs_to_api(f'Redis set - Key: {KEY}, Value: {VALUE}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
 
         # Check the status and push the task to the appropriate queue
         task_info = redis_server.get(KEY)
@@ -166,8 +169,11 @@ def redis_set(KEY="", VALUE="", OUTPUT=""):
                 redis_server.rpush(queue_name, KEY)
         else:
             logger.warning('No information found for key: %s', KEY)
+            send_logs_to_api(f'No information found for key: {KEY}', 'warning', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
+
 
     except Exception as e:
+        send_logs_to_api(f'Error in updating API', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
         logger.error('Error in redis_set: %s', str(e))
 
 # Function to update the credentials dictionary with the status
@@ -184,13 +190,33 @@ def send_status_update(ID, STATUS, OUTPUT):
                            auth=(settings.username, settings.password))
     valid_response_code(response.status_code, ID)
 
+# Initialize the message counter
+message_counter = 0
+def send_logs_to_api(message, severity, source, timestamp):
+    try:
+        message_counter = (message_counter + 1) % 101
+        message_id = f"{timestamp} - {message_counter}"
+        payload = json.dumps({
+            "message": message,
+            "severity": severity,
+            "source": source,
+            "timestamp": timestamp,
+            "message_id": message_id})
+        print(payload)
+        answer = requests.post(managment_logs_url, data=payload,
+                               headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
+    except Exception as e:
+        logger.error("Error occurred while sending log to API: %s", str(e))
+
 def valid_response_code(statusCode,ID):
     if statusCode != 200:
         print("Api is not accesble. StatusCode is:", statusCode)
         logger.error('Error in updating API')
+        send_logs_to_api(f'Error in updating API', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
         redis_server.rpush(incompleted_tasks, ID)
 
 def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
+    
     if status_message == "status: success" and error is None:
         if output_message is not None:
             output = f"{status_message}\n{output_message}\n{output}"
@@ -200,13 +226,13 @@ def send_successORfailed_status(req_id, status_message=None, output_message=None
         task_status = json.loads(redis_server.get(req_id).decode())["status"]
         send_status_update(req_id, task_status, output)
         update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
-        
+
     elif status_message == "status: failed":
         output = f"{status_message} {error}"
         send_status_update(req_id, "failed", error)
         #Update the credentials with a "failed" status if not already present
         if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
-            update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+            update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")    
 
 def send_gaia_status(req_id, status_message=None, output=None, error=None, req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None):
     if status_message == "status: success":
