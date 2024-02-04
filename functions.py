@@ -1,6 +1,6 @@
 import time, sys, threading; from unittest import result; import requests, json, re, os; import logging
 from datetime import datetime; 
-import configparser, confparser;
+import configparser, ConfigParser,confparser
 import paramiko; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
@@ -121,7 +121,7 @@ def run_command_and_get_json(ip_address, username, password, command):
         if device_type == "nexus":
             if 'show run' in command:
                 output = ssh_client.exec_command(command)
-                parsed_data = confparser.Dissector.from_file('nexus.yaml').parse_str(output)
+                parsed_data = ConfigParser.Dissector.from_file('nexus.yaml').parse_str(output)
                 json_data = json.dumps(parsed_data, indent=4)
             else:
                 output = ssh_client.exec_command(command, use_textfsm=True )
@@ -129,7 +129,7 @@ def run_command_and_get_json(ip_address, username, password, command):
         elif device_type == "ios":
             if 'show run' in command:
                 output = ssh_client.exec_command(command)
-                parsed_data = confparser.Dissector.from_file('ios.yaml').parse_str(output)
+                parsed_data = ConfigParser.Dissector.from_file('ios.yaml').parse_str(output)
                 json_data = json.dumps(parsed_data, indent=4)
             else:
                 output = ssh_client.exec_command(command, use_textfsm=True)
