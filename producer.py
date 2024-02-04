@@ -92,8 +92,9 @@ def redis_queue_push(task):
                 job_status = job_status.strip()  # Remove leading and trailing whitespace
                 try:
                     job_status = job_status.decode('utf-8')
-                    job_status = json.loads(job_status)
-                    job_status = job_status.replace("'", '"')
+                    job_status_str = json.dumps(job_status)
+                    job_status_str = job_status_str.replace("'", '"')
+                    job_status = json.loads(job_status_str)
                     print("job_status test:", job_status)
                     if "completed" in job_status["status"]:
                         print("completed")
