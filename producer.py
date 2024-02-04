@@ -91,8 +91,9 @@ def redis_queue_push(task):
                 if job_status is not None:
                     try:
                         job_status = redis_server.get(task["record_id"])
+                        job_status = job_status.decode('utf-8') 
+                        job_status=json.loads(job_status)
                         print("job_status test:", job_status)
-                        job_status=json.loads(job_status.decode())
                         if "completed" in job_status["status"]:
                             print("completed")
                             output = re.sub("      ", "\n", job_status["output"])
