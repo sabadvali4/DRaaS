@@ -93,6 +93,7 @@ def redis_queue_push(task):
                 try:
                     job_status = job_status.decode('utf-8')
                     job_status = json.loads(job_status)
+                    job_status = job_status.replace("'", '"')
                     print("job_status test:", job_status)
                     if "completed" in job_status["status"]:
                         print("completed")
@@ -127,7 +128,7 @@ def redis_queue_push(task):
         send_logs_to_api(f'Error in redis_queue_push: {str(e)}', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
         logger.error('Error in redis_queue_push: %s', str(e))
 
-        
+
 last_cleanup_time = None
 if __name__ == "__main__":
     while True:
