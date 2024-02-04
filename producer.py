@@ -96,16 +96,23 @@ def redis_queue_push(task):
                     job_status_str = job_status_str.replace("'", '"')
                     job_status = json.loads(job_status_str)
                     print("job_status test:", job_status)
-                    if "completed" in job_status["status"]:
-                        print("completed")
-                        output = re.sub("      ", "\n", job_status["output"])
-                        send_status_update(task["record_id"], job_status["status"], output)
-                        redis_server.rpush(completed_tasks, str(task))
 
-                    # Active task
-                    elif "active" in job_status["status"]:
-                        print(f"Job status is {job_status} waiting to be executed")
-                        redis_server.rpush(queue_name, str(task))
+
+                    if isinstance(job_status, dict):
+                        if "completed" in job_status.get("status", ""):
+                            print("completed")
+                            output = re.sub("      ", "\n", job_status.get("output", ""))
+                            send_status_update(task["record_id"], job_status.get("status", ""), output)
+                            redis_server.rpush(completed_tasks, str(task))
+
+                        # Active task
+                        elif "active" in job_status.get("status", ""):
+                            print(f"Job status is {job_status} waiting to be executed")
+                            redis_server.rpush(queue_name, str(task))
+                    
+                    else:
+                        # Handle the case where job_status is not a dictionary
+                        logger.error("job_status is not a dictionary: %s", job_status)
 
                     # Failed task
                     if task["record_id"] not in [json.loads(t)["record_id"] for t in redis_server.lrange(failed_tasks, 0, -1)]:
