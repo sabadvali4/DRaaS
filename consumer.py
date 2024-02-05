@@ -153,17 +153,17 @@ def main():
                         retrieved_user = switch_user
                         retrieved_password = switch_password
 
-                    if (retrieved_user is not None and retrieved_password is not None):
-                        ssh_client = SSHClient(req_switch_ip, retrieved_user, retrieved_password)
-                        # Attempt to establish the SSH connection
-                        connected = ssh_client.try_connect(req_id)
+                    # if (retrieved_user is not None and retrieved_password is not None):
+                    #     ssh_client = SSHClient(req_switch_ip, retrieved_user, retrieved_password)
+                    #     # Attempt to establish the SSH connection
+                    #     connected = ssh_client.try_connect(req_id)
 
-                        if not connected:
-                            # If failed to connect after MAX attempts, send a status update to ServiceNow
-                            error_message = f"Failed to establish SSH connection to {req_switch_ip} after {SSHClient.MAX_RETRIES} attempts."
-                            send_status_update(req_id, "failed", error_message)
-                            continue
-                        ssh_client.close_connection()
+                    #     if not connected:
+                    #         # If failed to connect after MAX attempts, send a status update to ServiceNow
+                    #         error_message = f"Failed to establish SSH connection to {req_switch_ip} after {SSHClient.MAX_RETRIES} attempts."
+                    #         send_status_update(req_id, "failed", error_message)
+                    #         continue
+                    #     ssh_client.close_connection()
 
                     if switch_device_type == 'switch':
                         if (retrieved_user is not None and retrieved_password is not None):
