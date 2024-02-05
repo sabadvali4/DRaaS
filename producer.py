@@ -121,6 +121,7 @@ def redis_queue_push(task):
         send_logs_to_api(f'Error in redis_queue_push: {str(e)}', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
         logger.error('Error in redis_queue_push: %s', str(e))
 
+
 last_cleanup_time = None
 if __name__ == "__main__":
     while True:

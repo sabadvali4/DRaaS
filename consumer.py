@@ -164,7 +164,8 @@ def main():
                             send_status_update(req_id, "failed", error_message)
                             continue
                         ssh_client.close_connection()
-
+                    print("username: ", retrieved_user)
+                    print("pass: ", retrieved_password)
                     if switch_device_type == 'switch':
                         if (retrieved_user is not None and retrieved_password is not None):
                             # Check if the credentials status is 'failed' and the last attempt was 5 minutes ago
@@ -194,11 +195,23 @@ def main():
                                             output = "operation is done."
 
                                     except Exception as error:
-                                        send_successORfailed_status(req_id, output_message=None, status_message="status: failed", error=error ,output=None,
-                                                                    req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
+                                        status_message = "status: failed"
+                                        output = f"{status_message} {error}"
+                                        send_status_update(req_id, "failed", error)
+                                        # Update the credentials with a "failed" status if not already present
+                                        if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
+                                            update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+
                                     else:
-                                        send_successORfailed_status(req_id, output_message, status_message="status: success", error=None ,output=output,
-                                                                    req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
+                                        status_message = "status: success"
+                                        if output_message is not None:
+                                            output = f"{status_message}\n{output_message}\n{output}"
+                                        else:
+                                            output = f"{status_message}\n{output}"
+                                        redis_set(req_id, "completed", output)
+                                        task_sts = json.loads(redis_server.get(req_id).decode())["status"]
+                                        send_status_update(req_id, task_sts, output)
+                                        update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
                             else:
                                 try:
                                     if req_cmd != "" and req_port_mode == "":
@@ -218,11 +231,23 @@ def main():
                                     if output == None:
                                         output = "operation is done."
                                 except Exception as error:
-                                    send_successORfailed_status(req_id, output_message=None, status_message="status: failed", error=error ,output=None,
-                                                                req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
+                                    status_message = "status: failed"
+                                    output = f"{status_message} {error}"
+                                    send_status_update(req_id, "failed", error)
+                                    # Udate the credentials with a "failed" status if not already present
+                                    if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
+                                        update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
+
                                 else:
-                                    send_successORfailed_status(req_id, output_message, status_message="status: success", error= None ,output=output,
-                                                                req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
+                                    status_message = "status: success"
+                                    if output_message is not None:
+                                        output = f"{status_message}\n{output_message}\n{output}"
+                                    else:
+                                        output = f"{status_message}\n{output}"
+                                    redis_set(req_id, "completed", output)
+                                    task_sts = json.loads(redis_server.get(req_id).decode())["status"]
+                                    send_status_update(req_id, task_sts, output)
+                                    update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
                         # When a task is completed, remove the "current_task" key
                         redis_server.delete("current_task")
 

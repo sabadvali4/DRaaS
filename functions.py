@@ -1,6 +1,6 @@
 import time, sys, threading; from unittest import result; import requests, json, re, os; import logging
 from datetime import datetime; 
-import configparser, confparser;
+import configparser, confparser,confparser
 import paramiko; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json
 from dotenv import load_dotenv; from socket import *
@@ -220,7 +220,7 @@ def valid_response_code(statusCode,ID):
 
 def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
     
-    if status_message == "status: success" and error is None:
+    if status_message == "status: success":
         if output_message is not None:
             output = f"{status_message}\n{output_message}\n{output}"
         else:
