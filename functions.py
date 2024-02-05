@@ -218,9 +218,9 @@ def valid_response_code(statusCode,ID):
         send_logs_to_api(f'Error in updating API', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
         redis_server.rpush(incompleted_tasks, ID)
 
-def send_successORfailed_status(req_id, status_message, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
+def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
     
-    if status_message == "status: success" and error is None:
+    if status_message == "status: success":
         if output_message is not None:
             output = f"{status_message}\n{output_message}\n{output}"
         else:

@@ -194,10 +194,10 @@ def main():
                                             output = "operation is done."
 
                                     except Exception as error:
-                                        send_successORfailed_status(req_id, None, "status: failed", error=error ,output=None,
+                                        send_successORfailed_status(req_id, output_message, status_message="status: failed", error=error ,output=None,
                                                                     req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
                                     else:
-                                        send_successORfailed_status(req_id, output_message, "status: success", error=None ,output=output,
+                                        send_successORfailed_status(req_id, output_message, status_message="status: success", error=None ,output=output,
                                                                     req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
                             else:
                                 try:
@@ -218,10 +218,10 @@ def main():
                                     if output == None:
                                         output = "operation is done."
                                 except Exception as error:
-                                    send_successORfailed_status(req_id, None, "status: failed", error=error ,output=None,
+                                    send_successORfailed_status(req_id, output_message, status_message="status: failed", error=error ,output=None,
                                                                 req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
                                 else:
-                                    send_successORfailed_status(req_id, output_message, "status: success", error= None ,output=output,
+                                    send_successORfailed_status(req_id, output_message, status_message="status: success", error= None ,output=output,
                                                                 req_switch_ip=req_switch_ip,retrieved_user=retrieved_user,retrieved_password=retrieved_password)
                         # When a task is completed, remove the "current_task" key
                         redis_server.delete("current_task")
