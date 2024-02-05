@@ -1,10 +1,8 @@
 import requests, json
 from urllib3.exceptions import InsecureRequestWarning
 import re
-import switch_manage
 
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
-
 
 def gaia_api_call(ip_addr, port, command, json_payload, sid):
     url = f'https://{ip_addr}:{port}/gaia_api/{command}'
