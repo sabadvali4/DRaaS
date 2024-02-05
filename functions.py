@@ -1,9 +1,7 @@
 import time, sys, threading; from unittest import result; import requests, json, re, os; import logging
 from datetime import datetime; 
-import configparser, confparser,confparser
-import paramiko; from ntc_templates.parse import parse_output
-from netmiko import ConnectHandler; import json
-from dotenv import load_dotenv; from socket import *
+import configparser, confparser,confparser; import paramiko; from ntc_templates.parse import parse_output
+from netmiko import ConnectHandler; import json; from dotenv import load_dotenv; from socket import *
 import glv; import redis
 load_dotenv()
 from time import sleep, time
@@ -218,6 +216,7 @@ def valid_response_code(statusCode,ID):
         send_logs_to_api(f'Error in updating API', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
         redis_server.rpush(incompleted_tasks, ID)
 
+#Not Working Function - Fix
 def send_successORfailed_status(req_id, status_message=None, output_message=None, error=None, output=None, req_switch_ip=None, retrieved_user=None, retrieved_password=None):
     
     if status_message == "status: success":

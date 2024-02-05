@@ -199,10 +199,6 @@ if __name__ == "__main__":
     gaia_username = "admin"
     gaia_password = "iolredi8"
 
-    #adding vlan+route to test
-    #add_gaia_vlan(gaia_ip, gaia_username, gaia_password, "eth0", 18)
-    #add_gaia_route(gaia_ip, gaia_username, gaia_password, "192.168.2.0/24", "10.169.32.2")
-    
     #remove vlan+route to test
     remove_gaia_route(gaia_ip,gaia_username,gaia_password,"192.168.2.0/24")
     remove_gaia_vlan(gaia_ip, gaia_username, gaia_password, "eth0", 18)

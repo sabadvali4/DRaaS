@@ -1,7 +1,4 @@
-import redis, requests
-import re, json, sys, dotenv
-from time import sleep, time
-from functions import *
+import redis, requests; import re, json, sys, dotenv; from time import sleep, time; from functions import *
 import glv; from glv import added_vlan
 import gaia_ssh_connect
 import logging, time
@@ -164,8 +161,7 @@ def main():
                             send_status_update(req_id, "failed", error_message)
                             continue
                         ssh_client.close_connection()
-                    print("username: ", retrieved_user)
-                    print("pass: ", retrieved_password)
+
                     if switch_device_type == 'switch':
                         if (retrieved_user is not None and retrieved_password is not None):
                             # Check if the credentials status is 'failed' and the last attempt was 5 minutes ago
@@ -234,7 +230,7 @@ def main():
                                     status_message = "status: failed"
                                     output = f"{status_message} {error}"
                                     send_status_update(req_id, "failed", error)
-                                    # Udate the credentials with a "failed" status if not already present
+                                    # Update the credentials with a "failed" status if not already present
                                     if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
                                         update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
 

@@ -27,7 +27,6 @@ update_status_url= settings.url + "/postHealthMonitoring"
 logger = logging.getLogger(__name__)
 # Define the time format
 time_format = glv.time_format
-# Optionally set the logging level
 logger.setLevel(logging.DEBUG)
 try:
     from systemd.journal import JournaldLogHandler
@@ -90,8 +89,6 @@ def redis_queue_push(task):
 
                 if job_status is not None:
                     job_status=json.loads(job_status.decode())
-                    #Completed task
-                    #TODO Check competed
                     if "completed" in job_status["status"]:
                         print("completed")
                         output = re.sub("      ", "\n", job_status["output"])
@@ -108,12 +105,9 @@ def redis_queue_push(task):
                         redis_server.rpush(failed_tasks, json.dumps(task))
 
                 else:
-                     #TODO when job is none?
-                     print("else 11 {job_status}")
+                     print(f"else: {job_status}")
                      redis_server.rpush(queue_name, str(task))
-                     print(f"else 12 {job_status}")
                      redis_server.set(record_id, "active")
-                     print("else 13 {job_status}")
                      logger.info('Added %s to queue', task["record_id"])
                      print(f'added {task["record_id"]} to queue')
 
