@@ -106,7 +106,7 @@ def main():
 
                 vlan_ip = json_req["ip"]
                 vlan_subnet = json_req["subnet"]
-
+                comments = json_req["comments"]
                 api_status = get_id_status(req_id)
                 api_dr_status = api_status[0]['dr_status']
 
@@ -252,7 +252,7 @@ def main():
                             ##VLAN add/remove
                             if discovery == "0" and req_interface_name and req_vlans:
                                 if req_cmd.lower() == "add vlan":
-                                    gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans, vlan_ip, vlan_subnet)
+                                    gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans, vlan_ip, vlan_subnet,comments)
                                     action = "added"
                                 elif req_cmd.lower() == "delete vlan":
                                     gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)

@@ -29,11 +29,14 @@ class SSHConnection:
         else:
             print("Shell not opened.")
 
-    def create_vlan(self, physical_interface, vlan_id ,vlan_ip,vlan_subnet):
+    def create_vlan(self, physical_interface, vlan_id ,vlan_ip,vlan_subnet, comments):
         try:
             print(vlan_id)
             command_create_vlan = f"add interface {physical_interface} vlan {vlan_id}"
             self.send_shell(command_create_vlan)
+            time.sleep(1)
+            command_comments_on_vlan = f"set interface {physical_interface}.{vlan_id} comments {comments}"
+            self.send_shell(command_comments_on_vlan)
             time.sleep(1)
             command_configure_ip = f"set interface {physical_interface}.{vlan_id} ipv4-address {vlan_ip} subnet-mask {vlan_subnet}"
             self.send_shell(command_configure_ip)
@@ -85,7 +88,6 @@ def get_gaia_hostname(ip,user,password):
     time.sleep(1)
     output = connection.exec_command('show hostname')
     return output
-
 
 def parse_gaia_output(output):
     interfaces = {}
@@ -149,16 +151,13 @@ def parse_gaia_route_output(output):
             routes.append(route_entry)
     return routes
 
-
-def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_subnet):
+def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_subnet,comments):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
-    # connection.send_shell(f'lock database override')
-    # time.sleep(1)
     int(vlan)
-    print(vlan)
-    connection.create_vlan(physical_interface, vlan, vlan_ip, vlan_subnet)
+    comments = f'"{comments}"'
+    connection.create_vlan(physical_interface, vlan, vlan_ip, vlan_subnet,comments)
     connection.close_connection()
 
 def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
