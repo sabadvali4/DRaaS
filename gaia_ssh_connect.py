@@ -156,7 +156,6 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_su
     connection.open_shell()
     time.sleep(1)
     int(vlan)
-    comments = f'"{comments}"'
     connection.create_vlan(physical_interface, vlan, vlan_ip, vlan_subnet,comments)
     connection.close_connection()
 
