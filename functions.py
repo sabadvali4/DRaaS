@@ -248,9 +248,9 @@ def send_gaia_status(req_id, status_message=None, output=None, error=None, req_c
         elif req_cmd.lower() == "delete route":
             output = f"{status_message} Error removing route for {destination} and gateway {gateway if gateway else 'None'}: {error}"
         elif req_cmd.lower() == "add vlan":
-            output = f"{status_message} Error adding VLANs {req_vlans} to interface {req_interface_name}: {error}"
+            output = f"{status_message} Error adding VLANs {str(req_vlans)} to interface {req_interface_name}: {error}"
         elif req_cmd.lower() == "delete vlan":
-            output = f"{status_message} Error removing VLANs {req_vlans} from interface {req_interface_name}: {error}"
+            output = f"{status_message} Error removing VLANs {str(req_vlans)} from interface {req_interface_name}: {error}"
         else:
             output = f"{status_message} Error: {error}"
         send_status_update(req_id, "failed", output)
