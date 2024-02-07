@@ -180,13 +180,13 @@ def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection.open_shell()
     time.sleep(1)
 
-    connection.send_shell(f'delete interface {physical_interface} vlan {vlan_id}')
+    output = connection.send_shell(f'delete interface {physical_interface} vlan {vlan_id}')
     time.sleep(1)
-    print(f"VLAN {vlan_id} deleted successfully from interface {physical_interface}.")
     
     connection.send_shell('save config')
     time.sleep(2)
     connection.close_connection()
+    return output
 
 def add_gaia_route(ip, user, password, destination_network, gateway):
     connection = SSHConnection(ip, user, password)
@@ -194,19 +194,21 @@ def add_gaia_route(ip, user, password, destination_network, gateway):
     time.sleep(1)
     
     if gateway != None:
-        connection.create_route(destination_network, gateway)
+        output= connection.create_route(destination_network, gateway)
     else:
         print("Neither via nor gateway provided. Route configuration failed.")
     
     connection.close_connection()
+    return output
 
 def remove_gaia_route(ip,user,password,destination_network):
     connection = SSHConnection(ip,user, password)
     connection.open_shell()
     time.sleep(1)
-    connection.send_shell(f'set static-route {destination_network} off')
+    output= connection.send_shell(f'set static-route {destination_network} off')
     connection.send_shell('save config')
     connection.close_connection()
+    return output
 
 if __name__ == "__main__":
     gaia_ip = "10.169.32.178"

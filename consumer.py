@@ -256,48 +256,61 @@ def main():
                                     cmd_output= gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans, vlan_ip, vlan_subnet,comments)
                                     action = "added"
                                 elif req_cmd.lower() == "delete vlan":
-                                    gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
+                                    cmd_output= gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "removed"
                                 
                                 if cmd_output:  # Check if cmd_output is not empty
-                                    output = f'Cannot add the VLAN because: {cmd_output}'
-                                    #send_status_update(req_id, "failed", output)
+                                    if action == "added":
+                                        output = f'Cannot add the VLAN because: {cmd_output}'
+                                    elif action == "removed":
+                                        output = f'Cannot delete the VLAN because: {cmd_output}'
+
                                     send_gaia_status(req_id, status_message="status: failed", output=output, error=output,
                                                   req_cmd=req_cmd, destination=destination, gateway=gateway, req_vlans=req_vlans,req_interface_name=req_interface_name)
+                                else:
+                                    gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
+                                    hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
+                                    interface_dict = json.loads(gaia_interface_info)
+                                    combined_data = {"hostname": hostname, "interfaces": interface_dict}
+                                    json_data = json.dumps(combined_data, indent=4)
 
-                                gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
-                                hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
-                                interface_dict = json.loads(gaia_interface_info)
-                                combined_data = {"hostname": hostname, "interfaces": interface_dict}
-                                json_data = json.dumps(combined_data, indent=4)
-
-                                status_message = "status: success"
-                                output_message = f"VLANs {req_vlans} {action} to interface {req_interface_name} on Gaia switch {req_switch_ip}."
-                                output = f"{status_message}\n{output_message}\n{json_data}"
+                                    status_message = "status: success"
+                                    output_message = f"VLANs {req_vlans} {action} to interface {req_interface_name} on Gaia switch {req_switch_ip}."
+                                    output = f"{status_message}\n{output_message}\n{json_data}"
                         
-                                send_gaia_status(req_id, status_message="status: success", output=output, error=None,
+                                    send_gaia_status(req_id, status_message="status: success", output=output, error=None,
                                                   req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None)
 
                             ##routing add/remove
                             elif discovery == "0" and destination and gateway:
                                 if req_cmd.lower() == "add route":
-                                    gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
+                                    cmd_output= gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
                                     action = "added"
                                 elif req_cmd.lower() == "delete route":
-                                    gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination)
+                                    cmd_output = gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination)
                                     action = "removed"
 
-                                gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
-                                hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
-                                route_dict = json.loads(gaia_route_info)
-                                combined_data = {"hostname": hostname,"routes": route_dict}
-                                json_data = json.dumps(combined_data, indent=4)
-                                
-                                status_message="status: success"
-                                output_message = f"Route for {destination} {action} on Gaia switch {req_switch_ip}."
-                                output = f"{status_message}\n{output_message}\n{json_data}"
+                                if cmd_output:  # Check if cmd_output is not empty
+                                    if action == "added":
+                                        output = f'Cannot add the VLAN because: {cmd_output}'
+                                    elif action == "removed":
+                                        output = f'Cannot delete the VLAN because: {cmd_output}'
 
-                                send_gaia_status(req_id, status_message="status: success", output=output, error=None,
+                                    send_gaia_status(req_id, status_message="status: failed", output=output, error=output,
+                                                  req_cmd=req_cmd, destination=destination, gateway=gateway, req_vlans=req_vlans,req_interface_name=req_interface_name)
+
+                                else:
+                                    gaia_route_info = gaia_ssh_connect.get_gaia_route_info(req_switch_ip, switch_user, switch_password)
+                                    hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
+                                    route_dict = json.loads(gaia_route_info)
+                                    combined_data = {"hostname": hostname,"routes": route_dict}
+                                    json_data = json.dumps(combined_data, indent=4)
+                                
+                                    status_message="status: success"
+                                    output_message = f"Route for {destination} {action} on Gaia switch {req_switch_ip}."
+                                    output = f"{status_message}\n{output_message}\n{json_data}"
+
+                                    send_gaia_status(req_id, status_message="status: success", output=output, error=None,
                                                   req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None)
 
                             if discovery == "1":
