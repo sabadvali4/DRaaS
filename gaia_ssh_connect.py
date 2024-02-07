@@ -36,27 +36,19 @@ class SSHConnection:
             command_create_vlan = f"add interface {physical_interface} vlan {vlan_id}"
             output += self.send_shell(command_create_vlan)
             time.sleep(1)
-            if output.strip():  # Check if output is not empty
-                raise Exception(output)
 
             command_comments_on_vlan = f"set interface {physical_interface}.{vlan_id} comments {comments}"
             output += self.send_shell(command_comments_on_vlan)
             time.sleep(1)
-            if output.strip():
-                raise Exception(output)
 
             command_configure_ip = f"set interface {physical_interface}.{vlan_id} ipv4-address {vlan_ip} subnet-mask {vlan_subnet}"
             output += self.send_shell(command_configure_ip)
             time.sleep(1)
-            if output.strip():
-                raise Exception(output)
 
             # print(f"VLAN {vlan_id} added successfully to interface {physical_interface}.")
             command_save_config = f"save config"
             output += self.send_shell(command_save_config)
             time.sleep(1)
-            if output.strip():
-                raise Exception(output)
 
             return output
 
@@ -169,8 +161,9 @@ def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_su
     connection.open_shell()
     time.sleep(1)
     int(vlan)
-    connection.create_vlan(physical_interface, vlan, vlan_ip, vlan_subnet,comments)
+    output = connection.create_vlan(physical_interface, vlan, vlan_ip, vlan_subnet,comments)
     connection.close_connection()
+    return output
 
 def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection = SSHConnection(ip, user, password)

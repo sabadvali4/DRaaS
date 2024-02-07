@@ -253,11 +253,16 @@ def main():
                             ##VLAN add/remove
                             if discovery == "0" and req_interface_name and req_vlans:
                                 if req_cmd.lower() == "add vlan":
-                                    gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans, vlan_ip, vlan_subnet,comments)
+                                    cmd_output= gaia_ssh_connect.add_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans, vlan_ip, vlan_subnet,comments)
                                     action = "added"
                                 elif req_cmd.lower() == "delete vlan":
                                     gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "removed"
+                                
+                                if cmd_output:  # Check if cmd_output is not empty
+                                    output = f'Cannot add the VLAN because: {cmd_output}'
+                                    send_status_update(req_id, "failed", output)
+                                    return  # Exit the function if there's an error
 
                                 gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
                                 hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
