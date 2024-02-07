@@ -29,23 +29,36 @@ class SSHConnection:
         else:
             print("Shell not opened.")
 
-    def create_vlan(self, physical_interface, vlan_id ,vlan_ip,vlan_subnet, comments):
+    def create_vlan(self, physical_interface, vlan_id, vlan_ip, vlan_subnet, comments):
         try:
+            output = ""
             print(vlan_id)
             command_create_vlan = f"add interface {physical_interface} vlan {vlan_id}"
-            self.send_shell(command_create_vlan)
+            output += self.send_shell(command_create_vlan)
             time.sleep(1)
-            command_comments_on_vlan = f"set interface {physical_interface}.{vlan_id} comments {comments}"
-            self.send_shell(command_comments_on_vlan)
-            time.sleep(1)
-            command_configure_ip = f"set interface {physical_interface}.{vlan_id} ipv4-address {vlan_ip} subnet-mask {vlan_subnet}"
-            self.send_shell(command_configure_ip)
-            time.sleep(1)
-            print(f"VLAN {vlan_id} added successfully to interface {physical_interface}.")
+            if output.strip():  # Check if output is not empty
+                raise Exception(output)
 
-            command = f"save config"
-            self.send_shell(command)
+            command_comments_on_vlan = f"set interface {physical_interface}.{vlan_id} comments {comments}"
+            output += self.send_shell(command_comments_on_vlan)
             time.sleep(1)
+            if output.strip():
+                raise Exception(output)
+
+            command_configure_ip = f"set interface {physical_interface}.{vlan_id} ipv4-address {vlan_ip} subnet-mask {vlan_subnet}"
+            output += self.send_shell(command_configure_ip)
+            time.sleep(1)
+            if output.strip():
+                raise Exception(output)
+
+            # print(f"VLAN {vlan_id} added successfully to interface {physical_interface}.")
+            command_save_config = f"save config"
+            output += self.send_shell(command_save_config)
+            time.sleep(1)
+            if output.strip():
+                raise Exception(output)
+
+            return output
 
         except Exception as e:
             print(f"Error occurred while creating VLAN: {e}")
