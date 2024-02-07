@@ -1,4 +1,5 @@
 import paramiko
+import time; from time import sleep
 import time, re
 import json
 class SSHConnection:
@@ -25,7 +26,17 @@ class SSHConnection:
 
     def send_shell(self, command):
         if self.shell:
-            return self.shell.send(command + "\n")
+            self.shell.send(command + "\n")
+            time.sleep(1)
+            output=""
+            while True:
+                if self.shell.recv_ready():
+                    output += self.shell.recv(1024).decode('utf-8')
+                if self.shell.recv_stderr_ready():
+                    output += self.shell.recv_stderr(1024).decode('utf-8')
+                if not self.shell.recv_ready() and not self.shell.recv_stderr_ready():
+                    break
+            return output.strip()
         else:
             print("Shell not opened.")
 
@@ -51,7 +62,6 @@ class SSHConnection:
             time.sleep(1)
 
             return output
-
         except Exception as e:
             print(f"Error occurred while creating VLAN: {e}")
 

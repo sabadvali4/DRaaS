@@ -261,8 +261,9 @@ def main():
                                 
                                 if cmd_output:  # Check if cmd_output is not empty
                                     output = f'Cannot add the VLAN because: {cmd_output}'
-                                    send_status_update(req_id, "failed", output)
-                                    return  # Exit the function if there's an error
+                                    #send_status_update(req_id, "failed", output)
+                                    send_gaia_status(req_id, status_message="status: failed", output=output, error=output,
+                                                  req_cmd=req_cmd, destination=destination, gateway=gateway, req_vlans=req_vlans,req_interface_name=req_interface_name)
 
                                 gaia_interface_info = gaia_ssh_connect.get_gaia_interface_info(req_switch_ip, switch_user, switch_password)
                                 hostname = gaia_ssh_connect.get_gaia_hostname(req_switch_ip, switch_user, switch_password)
