@@ -259,7 +259,7 @@ def main():
                                     cmd_output= gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "removed"
                                 
-                                if cmd_output:  # Check if cmd_output is not empty
+                                if "error" or "Invalid" or "is down" in cmd_output :  # Check if cmd_output is not empty
                                     if action == "added":
                                         output = f'Cannot add the VLAN because: {cmd_output}'
                                     elif action == "removed":
