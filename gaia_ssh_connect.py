@@ -65,9 +65,9 @@ class SSHConnection:
         except Exception as e:
             print(f"Error occurred while creating VLAN: {e}")
 
-    def create_route(self, destination_network, gateway,priority):
+    def create_route(self, destination_network, gateway):
         try:
-            command = f"set static-route {destination_network} nexthop gateway address {gateway} priority {priority} on"
+            command = f"set static-route {destination_network} nexthop gateway address {gateway} on"
         
             output= self.send_shell(command)
             time.sleep(1)
@@ -208,13 +208,13 @@ def remove_gaia_vlan(ip, user, password , physical_interface, vlan_id):
     connection.close_connection()
     return output
 
-def add_gaia_route(ip, user, password, destination_network, gateway,priority):
+def add_gaia_route(ip, user, password, destination_network, gateway):
     connection = SSHConnection(ip, user, password)
     connection.open_shell()
     time.sleep(1)
     
     if gateway != None:
-        output= connection.create_route(destination_network, gateway,priority)
+        output= connection.create_route(destination_network, gateway)
     else:
         print("Neither via nor gateway provided. Route configuration failed.")
     
