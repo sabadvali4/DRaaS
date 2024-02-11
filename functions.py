@@ -221,16 +221,16 @@ def send_successORfailed_status(req_id, status_message=None, output_message=None
     
     if status_message == "status: success":
         if output_message is not None:
-            output = f"{status_message}\n{output_message}\n{output}"
+            output = f"{output_message}\n{output}"
         else:
-            output = f"{status_message}\n{output}"
+            output = f"{output}"
         redis_set(req_id, "completed", output)
         task_status = json.loads(redis_server.get(req_id).decode())["status"]
         send_status_update(req_id, task_status, output)
         update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "success")
 
     elif status_message == "status: failed":
-        output = f"{status_message} {error}"
+        output = f"{error}"
         send_status_update(req_id, "failed", error)
         #Update the credentials with a "failed" status if not already present
         if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
