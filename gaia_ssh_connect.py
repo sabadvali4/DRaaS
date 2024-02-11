@@ -131,15 +131,17 @@ def get_gaia_route_info(ip, user, password):
     output = connection.exec_command('show route')
     # Join the output to form a string
     output_str = '\n'.join(output)
-
+    
+    configuration_output = connection.exec_command('show configuration')
+    configuration_output = '\n'.join(configuration_output)
     # Parse the output to JSON format
-    parsed_data = parse_gaia_route_output(output_str)
+    parsed_data = parse_gaia_route_output(output_str, configuration_output)
     json_data = json.dumps(parsed_data, indent=4)
 
     connection.close_connection()
     return json_data
 
-def parse_gaia_route_output(output):
+def parse_gaia_route_output(output, configuration_output):
     routes = []
     lines = output.split("\n")
     for line in lines:
@@ -150,24 +152,39 @@ def parse_gaia_route_output(output):
                 destination = fields[0].split()[1]
                 via = fields[0].split()[3]
                 interface = fields[1].strip()
-                cost = fields[0].split("cost")[1].split(",")[0].strip()
+                #cost = fields[0].split("cost")[1].split(",")[0].strip()
             else:
                 fields = line.split()
                 protocol = fields[0]
                 destination = fields[1]
                 via = fields[3]
                 interface = fields[5]
-                cost = None
+                #cost = None
+            priority = get_priority(destination,configuration_output)
 
             route_entry = {
                 "protocol": protocol,
                 "destination": destination,
                 "via": via,
-                "cost": cost,
+                #"cost": cost,
+                "priority": priority,
                 "interface": interface
             }
             routes.append(route_entry)
     return routes
+
+def get_priority(destination,configuration_output):
+
+    lines = configuration_output.split("\n")
+    for line in lines:
+        if destination in line:
+            if "priority" in line:
+                priority_index = line.index("priority") + len("priority")
+                priority_value = line[priority_index:].split()[0]
+                return priority_value
+            else:
+                return None
+    return None
 
 def add_gaia_vlan(ip, user, password, physical_interface, vlan, vlan_ip, vlan_subnet,comments):
     connection = SSHConnection(ip, user, password)
