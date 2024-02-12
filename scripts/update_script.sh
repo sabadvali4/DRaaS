@@ -153,9 +153,8 @@ git fetch origin main
 # Check if the local branch is already up-to-date with the remote branch
 if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
     echo "Local branch is already up-to-date. No need to pull changes." >> $log_file
-    
-    python "$(dirname "$0")/../functions.py" send_logs_to_api "Local branch is already up-to-date. No need to pull changes." "info" "$mid_server" "$(date '+%d/%m/%Y %I:%M:%S %p')"
-    
+    #python "$(dirname "$0")/../functions.py" send_logs_to_api "Local branch is already up-to-date. No need to pull changes." "info" "$mid_server" "$(date '+%d/%m/%Y %I:%M:%S %p')"
+    python3 -c "import functions; functions.send_logs_to_api('Local branch is already up-to-date. No need to pull changes.', 'info' ,'$mid_server' ,'$(date '+%d/%m/%Y %I:%M:%S %p')')"
     exit 0
 else
     # Fetch and reset to the remote main branch
