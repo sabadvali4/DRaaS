@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATE=$(date "+%Y%m%d%H%M")
-
+##changes
 # Log file path
 log_file="/var/log/update_script.log"
 echo "Started sync at ${DATE}"  >> "$log_file"
