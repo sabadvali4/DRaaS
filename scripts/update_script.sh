@@ -145,6 +145,7 @@ fi
 copy_file "$project_dir/producer.py" "/tmp/scripts/producer.py.old"
 copy_file "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old"
 
+PYTHONPATH="$project_dir:$PYTHONPATH" /home/DRaaS/scripts/update.sh
 
 # Ensure you are on the main branch
 git checkout main
@@ -153,13 +154,14 @@ git fetch origin main
 # Check if the local branch is already up-to-date with the remote branch
 if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
     echo "Local branch is already up-to-date. No need to pull changes." >> $log_file
-    #python "$(dirname "$0")/../functions.py" send_logs_to_api "Local branch is already up-to-date. No need to pull changes." "info" "$mid_server" "$(date '+%d/%m/%Y %I:%M:%S %p')"
     python3 -c "import functions; functions.send_logs_to_api('Local branch is already up-to-date. No need to pull changes.', 'info' ,'$mid_server' ,'$(date '+%d/%m/%Y %I:%M:%S %p')')"
     exit 0
 else
     # Fetch and reset to the remote main branch
     git stash
     git pull origin main
+        python3 -c "import functions; functions.send_logs_to_api('The git pull request is done!', 'info' ,'$mid_server' ,'$(date '+%d/%m/%Y %I:%M:%S %p')')"
+
 fi
 
 # Activate virtual environment if it exists
