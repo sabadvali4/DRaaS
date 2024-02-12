@@ -108,6 +108,8 @@ def main():
                 vlan_subnet = json_req["subnet"]
                 comments = json_req["description"]
                 comments = f'"{comments}"'
+                #priority = json_req["priority"]
+
                 api_status = get_id_status(req_id)
                 api_dr_status = api_status[0]['dr_status']
 
