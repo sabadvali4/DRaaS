@@ -101,48 +101,16 @@ create_venv() {
 if [ -f "$config_file" ]; then
     source $config_file
     if [ -z "$project_dir" ] || [ -z "$user" ] || [ -z "$venv_dir" ]; then
-        echo "One or more parameters (project directory, user, or venv directory) are missing in the config file. Please provide the missing information."
+        echo "One or more parameters (project directory, user, MID Server, or venv directory) are missing in the config file. Please provide the missing information."
         get_project_info
         ask_user_about_username
+        
     fi
 else
     get_project_info
 fi
 
 echo "Project directory: $project_dir" >> "$log_file"
-
-# Find the configuration file under the 'config' directory
-project_config_dir="$project_dir/config/"
-ini_file="$(find "$project_config_dir" -maxdepth 1 -type f -iname "*.ini" -print -quit)"
-
-# Check if the parameters.ini file was found
-if [ -z "$ini_file" ]; then
-    echo "Error: No configuration file (*.ini) found in the 'config' directory. Please check your repository." >> "$log_file"
-    exit 1
-fi
-
-# Initialize mid_server variable
-mid_server=""
-
-# Loop through each .ini file and check if it contains the MID_SERVER parameter
-for ini_file in $ini_files; do
-    # Parse the parameters.ini file to get the values
-    mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
-    # If MID_SERVER is found, break the loop
-    if [ -n "$mid_server" ]; then
-        break
-    fi
-done
-
-# Check if MID_SERVER was found
-if [ -z "$mid_server" ]; then
-    echo "Error: No MID_SERVER parameter found in any configuration file (*.ini) in the 'config' directory. Please check your repository." >> "$log_file"
-    exit 1
-fi
-
-
-# Parse the parameters.ini file to get the values
-#mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
 
 # Function to copy files
 copy_file() {
@@ -165,7 +133,11 @@ fi
 copy_file "$project_dir/producer.py" "/tmp/scripts/producer.py.old"
 copy_file "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old"
 
-PYTHONPATH="$project_dir:$PYTHONPATH" /home/DRaaS/scripts/update_script.sh
+sudo cp -p "$project_config_dir/parameters.ini" "${base_directory}/config/"
+# Extract MID_SERVER value from parameters.ini file
+mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "${base_directory}/config/parameters.ini")
+# Print the extracted MID_SERVER value
+echo "MID_SERVER: $mid_server"
 
 # Ensure you are on the main branch
 git checkout main
