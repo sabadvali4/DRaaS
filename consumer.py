@@ -194,19 +194,17 @@ def main():
                                             output = "operation is done."
 
                                     except Exception as error:
-                                        status_message = "status: failed"
-                                        output = f"{status_message} {error}"
+                                        output = f"{error}"
                                         send_status_update(req_id, "failed", error)
                                         # Update the credentials with a "failed" status if not already present
                                         if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
                                             update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
 
                                     else:
-                                        status_message = "status: success"
                                         if output_message is not None:
-                                            output = f"{status_message}\n{output_message}\n{output}"
+                                            output = f"{output_message}\n{output}"
                                         else:
-                                            output = f"{status_message}\n{output}"
+                                            output = f"{output}"
                                         redis_set(req_id, "completed", output)
                                         task_sts = json.loads(redis_server.get(req_id).decode())["status"]
                                         send_status_update(req_id, task_sts, output)
@@ -230,19 +228,17 @@ def main():
                                     if output == None:
                                         output = "operation is done."
                                 except Exception as error:
-                                    status_message = "status: failed"
-                                    output = f"{status_message} {error}"
+                                    output = f"{error}"
                                     send_status_update(req_id, "failed", error)
                                     # Update the credentials with a "failed" status if not already present
                                     if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
                                         update_credential_dict(req_switch_ip, retrieved_user, retrieved_password, "failed")
 
                                 else:
-                                    status_message = "status: success"
                                     if output_message is not None:
-                                        output = f"{status_message}\n{output_message}\n{output}"
+                                        output = f"{output_message}\n{output}"
                                     else:
-                                        output = f"{status_message}\n{output}"
+                                        output = f"{output}"
                                     redis_set(req_id, "completed", output)
                                     task_sts = json.loads(redis_server.get(req_id).decode())["status"]
                                     send_status_update(req_id, task_sts, output)
@@ -276,9 +272,8 @@ def main():
                                     combined_data = {"hostname": hostname, "interfaces": interface_dict}
                                     json_data = json.dumps(combined_data, indent=4)
 
-                                    status_message = "status: success"
                                     output_message = f"VLANs {req_vlans} {action} to interface {req_interface_name} on Gaia switch {req_switch_ip}."
-                                    output = f"{status_message}\n{output_message}\n{json_data}"
+                                    output = f"{output_message}\n{json_data}"
                         
                                     send_gaia_status(req_id, status_message="status: success", output=output, error=None,
                                                   req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None)
@@ -308,9 +303,8 @@ def main():
                                     combined_data = {"hostname": hostname,"routes": route_dict}
                                     json_data = json.dumps(combined_data, indent=4)
                                 
-                                    status_message="status: success"
                                     output_message = f"Route for {destination} {action} on Gaia switch {req_switch_ip}."
-                                    output = f"{status_message}\n{output_message}\n{json_data}"
+                                    output = f"{output_message}\n{json_data}"
 
                                     send_gaia_status(req_id, status_message="status: success", output=output, error=None,
                                                   req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None)
