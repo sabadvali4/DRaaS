@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATE=$(date "+%Y%m%d%H%M")
-
+##changes
 # Log file path
 log_file="/var/log/update_script.log"
 echo "Started sync at ${DATE}"  >> "$log_file"
@@ -121,8 +121,28 @@ if [ -z "$ini_file" ]; then
     exit 1
 fi
 
+# Initialize mid_server variable
+mid_server=""
+
+# Loop through each .ini file and check if it contains the MID_SERVER parameter
+for ini_file in $ini_files; do
+    # Parse the parameters.ini file to get the values
+    mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
+    # If MID_SERVER is found, break the loop
+    if [ -n "$mid_server" ]; then
+        break
+    fi
+done
+
+# Check if MID_SERVER was found
+if [ -z "$mid_server" ]; then
+    echo "Error: No MID_SERVER parameter found in any configuration file (*.ini) in the 'config' directory. Please check your repository." >> "$log_file"
+    exit 1
+fi
+
+
 # Parse the parameters.ini file to get the values
-mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
+#mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "$ini_file")
 
 # Function to copy files
 copy_file() {
@@ -145,6 +165,7 @@ fi
 copy_file "$project_dir/producer.py" "/tmp/scripts/producer.py.old"
 copy_file "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old"
 
+PYTHONPATH="$project_dir:$PYTHONPATH" /home/DRaaS/scripts/update_script.sh
 
 # Ensure you are on the main branch
 git checkout main
@@ -153,11 +174,13 @@ git fetch origin main
 # Check if the local branch is already up-to-date with the remote branch
 if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
     echo "Local branch is already up-to-date. No need to pull changes." >> $log_file
+    curl -X POST -H "Content-Type: application/json" -d "{\"message\": \"Local branch is already up-to-date. No need to pull changes.\", \"severity\": \"info\", \"source\": \"$mid_server\", \"timestamp\": \"$(date '+%d/%m/%Y %I:%M:%S %p')\"}" https://bynetprod.service-now.com/api/bdml/switch/postSwitchManagmentLogs
     exit 0
 else
     # Fetch and reset to the remote main branch
     git stash
     git pull origin main
+    curl -X POST -H "Content-Type: application/json" -d "{\"message\": \"The git pull request is done!\", \"severity\": \"info\", \"source\": \"$mid_server\", \"timestamp\": \"$(date '+%d/%m/%Y %I:%M:%S %p')\"}" https://bynetprod.service-now.com/api/bdml/switch/postSwitchManagmentLogs
 fi
 
 # Activate virtual environment if it exists
