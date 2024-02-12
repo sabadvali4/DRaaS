@@ -145,7 +145,7 @@ fi
 copy_file "$project_dir/producer.py" "/tmp/scripts/producer.py.old"
 copy_file "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old"
 
-PYTHONPATH="$project_dir:$PYTHONPATH" /home/DRaaS/scripts/update.sh
+PYTHONPATH="$project_dir:$PYTHONPATH" /home/DRaaS/scripts/update_script.sh
 
 # Ensure you are on the main branch
 git checkout main
