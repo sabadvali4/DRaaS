@@ -108,7 +108,7 @@ def main():
                 vlan_subnet = json_req["subnet"]
                 comments = json_req["description"]
                 comments = f'"{comments}"'
-                #priority = json_req["priority"]
+                priority = json_req["priority"]
 
                 api_status = get_id_status(req_id)
                 api_dr_status = api_status[0]['dr_status']
@@ -281,7 +281,10 @@ def main():
                             ##routing add/remove
                             elif discovery == "0" and destination and gateway:
                                 if req_cmd.lower() == "add route":
-                                    cmd_output= gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
+                                    if priority is not None:
+                                        cmd_output= gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway,priority)
+                                    else:
+                                        cmd_output= gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
                                     action = "added"
                                 elif req_cmd.lower() == "delete route":
                                     cmd_output = gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination)
