@@ -139,15 +139,15 @@ if __name__ == "__main__":
                 # Push task to the Redis queue
                 redis_queue_push(task)
 
-        tasks_for_mid_server = [task for task in tasks if task['mid_name'] == settings.mid_server]
-        items_in_queue = len(tasks_for_mid_server)
+            tasks_for_mid_server = [task for task in tasks if task['mid_name'] == settings.mid_server]
+            items_in_queue = len(tasks_for_mid_server)
 
-        items_in_progress = sum(1 for task in tasks if task['dr_status'] == 'active')
-        items_failed = redis_server.llen(failed_tasks)
-        items_incomplete = redis_server.llen(incompleted_tasks)
-        Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')
+            items_in_progress = sum(1 for task in tasks if task['dr_status'] == 'active')
+            items_failed = redis_server.llen(failed_tasks)
+            items_incomplete = redis_server.llen(incompleted_tasks)
+            Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')
 
-        logger.info("%s, %s, %s, %s, %s, %s", settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)        
+            logger.info("%s, %s, %s, %s, %s, %s", settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)        
 
-        send_health_monitoring_update(settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)
-        sleep(10)
+            send_health_monitoring_update(settings.mid_server, items_in_queue, items_in_progress, items_failed, items_incomplete, Timestamp)
+            sleep(10)
