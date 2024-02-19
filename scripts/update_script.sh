@@ -133,26 +133,37 @@ fi
 copy_file "$project_dir/producer.py" "/tmp/scripts/producer.py.old"
 copy_file "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old"
 
-sudo cp -p "$project_config_dir/parameters.ini" "${base_directory}/config/"
+sudo cp -p "$project_config_dir/config/parameters.ini" "${base_directory}/config/"
 # Extract MID_SERVER value from parameters.ini file
 mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "${base_directory}/config/parameters.ini")
 # Print the extracted MID_SERVER value
 echo "MID_SERVER: $mid_server"
 
+
+# Read username and password from parameters.ini file
+username=$(awk -F "=" '/^[[:space:]]*username[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "${base_directory}/config/parameters.ini")
+password=$(awk -F "=" '/^[[:space:]]*password[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "${base_directory}/config/parameters.ini")
+
 # Ensure you are on the main branch
 git checkout main
 git fetch origin main
 
+# Initialize message_counter
+message_counter=0
 # Check if the local branch is already up-to-date with the remote branch
 if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
     echo "Local branch is already up-to-date. No need to pull changes." >> $log_file
-    curl -X POST -H "Content-Type: application/json" -d "{\"message\": \"Local branch is already up-to-date. No need to pull changes.\", \"severity\": \"info\", \"source\": \"$mid_server\", \"timestamp\": \"$(date '+%d/%m/%Y %I:%M:%S %p')\"}" https://bynetprod.service-now.com/api/bdml/switch/postSwitchManagmentLogs
+    message_counter=$(( (message_counter % 100) + 1 ))
+    message_id=$(date '+%d%m%Y%H%M%S')-$message_counter
+    curl -X POST -H "Content-Type: application/json" -d "{\"message\": \"Local branch is already up-to-date. No need to pull changes.\", \"severity\": \"info\", \"source\": \"$mid_server\", \"timestamp\": \"$(date '+%d/%m/%Y %I:%M:%S %p')\",  \"message_id\": \"$message_id\"}" -u "$username:$password" https://bynetprod.service-now.com/api/bdml/switch/postSwitchManagmentLogs
     exit 0
 else
     # Fetch and reset to the remote main branch
     git stash
     git pull origin main
-    curl -X POST -H "Content-Type: application/json" -d "{\"message\": \"The git pull request is done!\", \"severity\": \"info\", \"source\": \"$mid_server\", \"timestamp\": \"$(date '+%d/%m/%Y %I:%M:%S %p')\"}" https://bynetprod.service-now.com/api/bdml/switch/postSwitchManagmentLogs
+    message_counter=$(( (message_counter % 100) + 1 ))
+    message_id=$(date '+%d%m%Y%H%M%S')-$message_counter
+    curl -X POST -H "Content-Type: application/json" -d "{\"message\": \"The git pull request is done!\", \"severity\": \"info\", \"source\": \"$mid_server\", \"timestamp\": \"$(date '+%d/%m/%Y %I:%M:%S %p')\",  \"message_id\": \"$message_id\"}" -u "$username:$password" https://bynetprod.service-now.com/api/bdml/switch/postSwitchManagmentLogs
 fi
 
 # Activate virtual environment if it exists

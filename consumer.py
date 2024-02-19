@@ -108,7 +108,7 @@ def main():
                 vlan_subnet = json_req["subnet"]
                 comments = json_req["description"]
                 comments = f'"{comments}"'
-                #priority = json_req["priority"]
+                priority = json_req["priority"]
 
                 api_status = get_id_status(req_id)
                 api_dr_status = api_status[0]['dr_status']
@@ -161,6 +161,7 @@ def main():
                         if not connected:
                             # If failed to connect after MAX attempts, send a status update to ServiceNow
                             error_message = f"Failed to establish SSH connection to {req_switch_ip} after {SSHClient.MAX_RETRIES} attempts."
+                            redis_set(req_id, "failed", error_message)
                             send_status_update(req_id, "failed", error_message)
                             continue
                         ssh_client.close_connection()
@@ -195,6 +196,7 @@ def main():
 
                                     except Exception as error:
                                         output = f"{error}"
+                                        redis_set(req_id, "failed", output)
                                         send_status_update(req_id, "failed", error)
                                         # Update the credentials with a "failed" status if not already present
                                         if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
@@ -229,6 +231,7 @@ def main():
                                         output = "operation is done."
                                 except Exception as error:
                                     output = f"{error}"
+                                    redis_set(req_id, "failed", output)
                                     send_status_update(req_id, "failed", error)
                                     # Update the credentials with a "failed" status if not already present
                                     if req_switch_ip not in credential_dict or credential_dict[req_switch_ip]["status"] != "failed":
@@ -257,7 +260,7 @@ def main():
                                     cmd_output= gaia_ssh_connect.remove_gaia_vlan(req_switch_ip, switch_user, switch_password, req_interface_name, req_vlans)
                                     action = "removed"
                                 
-                                if "error" in cmd_output or "Invalid" in cmd_output or "is down" in cmd_output:  # Check if cmd_output is not empty
+                                if "error" in cmd_output or "Invalid" in cmd_output or "is down" in cmd_output:
                                     if action == "added":
                                         output = f'Cannot add the VLAN because: {cmd_output}'
                                     elif action == "removed":
@@ -279,19 +282,26 @@ def main():
                                                   req_cmd=None, destination=None, gateway=None, req_vlans=None,req_interface_name=None)
 
                             ##routing add/remove
-                            elif discovery == "0" and destination and gateway:
+                            elif discovery == "0" and destination:
                                 if req_cmd.lower() == "add route":
-                                    cmd_output= gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
-                                    action = "added"
+                                    if gateway is not None:
+                                        if priority is not None:
+                                            cmd_output= gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway,priority)
+                                        else:
+                                            cmd_output= gaia_ssh_connect.add_gaia_route(req_switch_ip, switch_user, switch_password, destination, gateway)
+                                        action = "added"
+                                    else:
+                                        cmd_output = "No Gateway is provided"
+                                        
                                 elif req_cmd.lower() == "delete route":
                                     cmd_output = gaia_ssh_connect.remove_gaia_route(req_switch_ip, switch_user, switch_password, destination)
                                     action = "removed"
 
-                                if cmd_output:  # Check if cmd_output is not empty
+                                if "error" in cmd_output or "Invalid" in cmd_output or "is down" in cmd_output:
                                     if action == "added":
-                                        output = f'Cannot add the VLAN because: {cmd_output}'
+                                        output = f'Cannot add the route because: {cmd_output}'
                                     elif action == "removed":
-                                        output = f'Cannot delete the VLAN because: {cmd_output}'
+                                        output = f'Cannot delete the route because: {cmd_output}'
 
                                     send_gaia_status(req_id, status_message="status: failed", output=output, error=output,
                                                   req_cmd=req_cmd, destination=destination, gateway=gateway, req_vlans=req_vlans,req_interface_name=req_interface_name)
@@ -330,6 +340,7 @@ def main():
                                                   req_cmd=req_cmd, destination=destination, gateway=gateway, req_vlans=req_vlans,req_interface_name=req_interface_name)
                 else:
                     print(f"No matching switch found for IP: {req_switch_ip}")
+                    redis_set(req_id, "failed", "Could not find switch for IP")
                     send_status_update(req_id, "failed", "Could not find switch for IP")
 
         elif "completed" in str(task_status):

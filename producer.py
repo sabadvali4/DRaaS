@@ -126,10 +126,10 @@ if __name__ == "__main__":
             sleep(5)
             continue
 
-        if last_cleanup_time is None or (datetime.now() - last_cleanup_time).seconds >= 3600:
-            cleanup_redis()
-            send_logs_to_api(f'Cleaning up the failed redis queue', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
-            last_cleanup_time = datetime.now()
+        #if last_cleanup_time is None or (datetime.now() - last_cleanup_time).seconds >= 3600:
+        #    cleanup_redis()
+        #    send_logs_to_api(f'Cleaning up the failed redis queue', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
+        #    last_cleanup_time = datetime.now()
 
         tasks = get_requests()
 
@@ -138,11 +138,10 @@ if __name__ == "__main__":
                 record_id=task["record_id"]
                 # Push task to the Redis queue
                 redis_queue_push(task)
-
+    
         tasks_for_mid_server = [task for task in tasks if task['mid_name'] == settings.mid_server]
         items_in_queue = len(tasks_for_mid_server)
-
-        items_in_progress = sum(1 for task in tasks if task['dr_status'] == 'active')
+        items_in_progress = sum(1 for task in tasks_for_mid_server if task.get('dr_status') == 'active')
         items_failed = redis_server.llen(failed_tasks)
         items_incomplete = redis_server.llen(incompleted_tasks)
         Timestamp = datetime.now().strftime('%d/%m/%Y %I:%M:%S %p')
