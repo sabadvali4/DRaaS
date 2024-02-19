@@ -253,6 +253,7 @@ def send_gaia_status(req_id, status_message=None, output=None, error=None, req_c
             output = f"{status_message} Error removing VLANs {str(req_vlans)} from interface {req_interface_name}: {error}"
         else:
             output = f"{status_message} Error: {error}"
+        redis_set(req_id, "failed", output)
         send_status_update(req_id, "failed", output)
 
 def check_privileged_connection(connection):
