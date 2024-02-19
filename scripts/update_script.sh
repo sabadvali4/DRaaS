@@ -133,7 +133,7 @@ fi
 copy_file "$project_dir/producer.py" "/tmp/scripts/producer.py.old"
 copy_file "$project_dir/consumer.py" "/tmp/scripts/consumer.py.old"
 
-sudo cp -p "$project_config_dir/parameters.ini" "${base_directory}/config/"
+sudo cp -p "$project_config_dir/config/parameters.ini" "${base_directory}/config/"
 # Extract MID_SERVER value from parameters.ini file
 mid_server=$(awk -F "=" '/^[[:space:]]*MID_SERVER[[:space:]]*=/ {gsub(/[[:space:]]/, "", $2); print $2}' "${base_directory}/config/parameters.ini")
 # Print the extracted MID_SERVER value
