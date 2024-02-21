@@ -1,9 +1,6 @@
 #!/bin/bash
 
-##NEW VERSION TST
-
 DATE=$(date "+%Y%m%d%H%M")
-##changes
 # Log file path
 log_file="/var/log/update_script.log"
 echo "Started sync at ${DATE}"  >> "$log_file"
@@ -35,7 +32,6 @@ else
 fi
 
 sudo apt-get install python3-venv
-# Function to prompt user for project directory
 get_project_info() 
 {
     project_dir=$(dirname "$(dirname "$(realpath "$0")")")
@@ -175,10 +171,8 @@ if [ -f "$config_file" ]; then
         source "$venv_dir/bin/activate"
     fi
 else
-    # Create and activate virtual environment if it doesn't exist
     create_venv
 fi
-
 # Install Python dependencies
 pip install -r "$project_dir/requirements.txt"
 # Copy the 'config' directory to /opt/
@@ -193,8 +187,6 @@ update_service_file()
     local exec_param="ExecStart=$base_directory/venv/bin/python $project_dir/$2.py"
 
     local local_service_file="$project_dir/$2.service"
-
-    # Check if the service file exists
     if [ ! -f "$service_file" ]; then
         echo "$2 service file not found in the system. Creating..." >> "$log_file"
         sed -i "s#User=.*#$user_param#" "$local_service_file"
@@ -262,7 +254,6 @@ sudo systemctl restart consumer.service >> "$log_file" 2>&1
 # Check the status of the services
 producer_status=$(sudo systemctl is-active producer.service)
 consumer_status=$(sudo systemctl is-active consumer.service)
-
 # Print the status message
 if [ "$producer_status" = "active" ] && [ "$consumer_status" = "active" ]; then
     echo "All services are up." >> "$log_file"
