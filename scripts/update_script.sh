@@ -1,5 +1,7 @@
 #!/bin/bash
 
+##NEW VERSION TST
+
 DATE=$(date "+%Y%m%d%H%M")
 ##changes
 # Log file path
@@ -180,7 +182,7 @@ fi
 # Install Python dependencies
 pip install -r "$project_dir/requirements.txt"
 # Copy the 'config' directory to /opt/
-sudo cp -p "$project_config_dir/parameters.ini" "${base_directory}/config/"
+sudo cp -p "$project_config_dir/config/parameters.ini" "${base_directory}/config/"
 
 # Function to update service file with correct parameters
 update_service_file() 
