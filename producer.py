@@ -111,11 +111,12 @@ def redis_queue_push(task):
                         redis_server.rpush(failed_tasks, json.dumps(task))
 
                 else:
-                     print(f"else: {job_status}")
-                     redis_server.rpush(queue_name, str(task))
-                     redis_server.set(record_id, "active")
-                     logger.info('Added %s to queue', task["record_id"])
-                     print(f'added {task["record_id"]} to queue')
+                     logger.warning("Job status is empty or None for record_id: %s", task["record_id"])
+                    #  print(f"else: {job_status}")
+                    #  redis_server.rpush(queue_name, str(task))
+                    #  redis_server.set(record_id, "active")
+                    #  logger.info('Added %s to queue', task["record_id"])
+                    #  print(f'added {task["record_id"]} to queue')
 
     except Exception as e:
         #send_logs_to_api(f'Error in redis_queue_push: {str(e)}', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
