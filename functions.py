@@ -1,6 +1,6 @@
 import time, sys, threading; from unittest import result; import requests, json, re, os; import logging
 from datetime import datetime; 
-import configparser, confparser,confparser; import paramiko; from ntc_templates.parse import parse_output
+import configparser,confparser; import paramiko; from ntc_templates.parse import parse_output
 from netmiko import ConnectHandler; import json; from dotenv import load_dotenv; from socket import *
 import glv; import redis
 load_dotenv()

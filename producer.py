@@ -60,6 +60,12 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
                 "timestamp": Timestamp
             })
         print(payload)
+        # Check if payload is empty
+        if not payload:
+            logger.warning("Empty payload. Skipping health monitoring update.")
+            send_logs_to_api(f'Empty payload. Skipping health monitoring update. {str(e)}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
+            return
+        
         answer = requests.post(update_status_url, data=payload,
                                headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
         #send_logs_to_api(f'Sended info to send_health_monitoring_update: {payload}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
@@ -87,7 +93,7 @@ def redis_queue_push(task):
                 print("job_status: ",job_status)
                 print("recieved task:",task)
 
-                if job_status is not None:
+                if job_status is not None and job_status.strip():
                     job_status=json.loads(job_status.decode())
                     if "completed" in job_status["status"]:
                         print("completed")
