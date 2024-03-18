@@ -94,7 +94,12 @@ def redis_queue_push(task):
                 print("recieved task:",task)
 
                 if job_status is not None and job_status.strip():
-                    job_status=json.loads(job_status.decode())
+                    try:
+                        job_status=json.loads(job_status.decode())
+                    except json.JSONDecodeError as json_error:
+                        logger.error("Error decoding JSON for record_id: %s. Error: %s", record_id, str(json_error))
+                        return  # Exit the function if JSON decoding fails
+                    
                     if "completed" in job_status["status"]:
                         print("completed")
                         output = re.sub("      ", "\n", job_status["output"])
