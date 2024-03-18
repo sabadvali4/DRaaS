@@ -60,6 +60,12 @@ def send_health_monitoring_update (mid_name, items_in_queue, items_in_process, i
                 "timestamp": Timestamp
             })
         print(payload)
+        # Check if payload is empty
+        if not payload:
+            logger.warning("Empty payload. Skipping health monitoring update.")
+            send_logs_to_api(f'Empty payload. Skipping health monitoring update. {str(e)}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
+            return
+        
         answer = requests.post(update_status_url, data=payload,
                                headers={'Content-Type': 'application/json'}, auth=(settings.username, settings.password)).json()
         #send_logs_to_api(f'Sended info to send_health_monitoring_update: {payload}', 'info', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'), '123')
@@ -87,8 +93,13 @@ def redis_queue_push(task):
                 print("job_status: ",job_status)
                 print("recieved task:",task)
 
-                if job_status is not None:
-                    job_status=json.loads(job_status.decode())
+                if job_status is not None and job_status.strip():
+                    try:
+                        job_status=json.loads(job_status.decode())
+                    except json.JSONDecodeError as json_error:
+                        logger.error("Error decoding JSON for record_id: %s. Error: %s", record_id, str(json_error))
+                        return  # Exit the function if JSON decoding fails
+                    
                     if "completed" in job_status["status"]:
                         print("completed")
                         output = re.sub("      ", "\n", job_status["output"])
@@ -105,11 +116,12 @@ def redis_queue_push(task):
                         redis_server.rpush(failed_tasks, json.dumps(task))
 
                 else:
-                     print(f"else: {job_status}")
-                     redis_server.rpush(queue_name, str(task))
-                     redis_server.set(record_id, "active")
-                     logger.info('Added %s to queue', task["record_id"])
-                     print(f'added {task["record_id"]} to queue')
+                     logger.warning("Job status is empty or None for record_id: %s", task["record_id"])
+                    #  print(f"else: {job_status}")
+                    #  redis_server.rpush(queue_name, str(task))
+                    #  redis_server.set(record_id, "active")
+                    #  logger.info('Added %s to queue', task["record_id"])
+                    #  print(f'added {task["record_id"]} to queue')
 
     except Exception as e:
         #send_logs_to_api(f'Error in redis_queue_push: {str(e)}', 'error', settings.mid_server, datetime.now().strftime('%d/%m/%Y %I:%M:%S %p'))
