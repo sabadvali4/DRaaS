@@ -1,6 +1,8 @@
 import configparser 
 import os
 
+
+
 def init():
     global mid_server
     global username
@@ -10,8 +12,9 @@ def init():
     global switch_info_url
     config = configparser.ConfigParser()
     config.sections()
-    config.read('/opt/DRaaS/config/parameters.ini')
+    config.read('./check/parameters.ini')
     config.sections()
+
 
     if 'DEFAULT' in config:
         mid_server = config['DEFAULT']['MID_SERVER']
@@ -37,5 +40,4 @@ def init():
         switch_info_url = config['DEFAULT']['switch_info_url']
     else:
         switch_info_url = os.environ.get('switch_info_url')
-
 
